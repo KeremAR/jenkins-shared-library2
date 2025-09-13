@@ -1,0 +1,70 @@
+@Library('todo-app-shared-library') _
+
+pipeline {
+    agent {
+        kubernetes {
+            defaultContainer 'jnlp'
+            yaml com.company.jenkins.Utils.getPodTemplate()
+        }
+    }
+
+    environment {
+        GITHUB_REGISTRY = 'ghcr.io'
+        GITHUB_USER = 'keremar'
+        IMAGE_TAG = "${BUILD_NUMBER}"
+        REGISTRY_CREDENTIALS = 'github-registry'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build & Test') {
+            steps {
+                script {
+                    def config = com.company.jenkins.Utils.getServiceConfig()
+                    config.imageTag = env.IMAGE_TAG
+                    
+                    // Build all services in parallel
+                    def builtImages = buildAllServices(config)
+                    
+                    // Run tests
+                    runBackendTests()
+                    
+                    // Push to registry
+                    pushToRegistry([
+                        images: builtImages,
+                        registry: env.GITHUB_REGISTRY,
+                        credentialsId: env.REGISTRY_CREDENTIALS
+                    ])
+                    
+                    // Deploy to Kubernetes
+                    deployToKubernetes([
+                        namespace: 'todo-app',
+                        manifestsPath: 'k8s'
+                    ])
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Cleaning up the workspace...'
+            deleteDir()
+        }
+        success {
+            script {
+                com.company.jenkins.Utils.notifyGitHub(this, 'success', 'Pipeline completed successfully!')
+            }
+        }
+        failure {
+            script {
+                com.company.jenkins.Utils.notifyGitHub(this, 'failure', 'Pipeline failed!')
+            }
+        }
+    }
+}
