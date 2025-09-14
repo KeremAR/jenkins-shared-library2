@@ -1,55 +1,40 @@
+#!/usr/bin/env groovy
+
 def call(Map config) {
-    echo "Running SonarQube analysis with config: ${config}"
-    
-    // Validate required parameters
-    if (!config.projectKey) {
-        error "SonarQube project key is required"
+    // 1. Gerekli parametrelerin varlığını kontrol et
+    if (!config.projectKey || !config.sonarHostUrl || !config.sonarToken) {
+        error("Missing required parameter. 'projectKey', 'sonarHostUrl', and 'sonarToken' must be provided.")
     }
-    if (!config.sonarHostUrl) {
-        error "SonarQube host URL is required"
-    }
-    if (!config.sonarToken) {
-        error "SonarQube token is required"
-    }
-    
+
     container('docker') {
-        script {
-            echo "Installing sonar-scanner..."
-            sh '''
-                # Install sonar-scanner if not already available
-                if ! command -v sonar-scanner &> /dev/null; then
-                    echo "Installing sonar-scanner..."
-                    
-                    # Download and install sonar-scanner
-                    cd /tmp
-                    wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
-                    unzip -q sonar-scanner-cli-5.0.1.3006-linux.zip
-                    mv sonar-scanner-5.0.1.3006-linux /opt/sonar-scanner
-                    ln -sf /opt/sonar-scanner/bin/sonar-scanner /usr/local/bin/sonar-scanner
-                    
-                    echo "sonar-scanner installed successfully"
-                else
-                    echo "sonar-scanner is already available"
-                fi
-            '''
-            
-            echo "Creating sonar-project.properties file..."
-            writeFile file: 'sonar-project.properties', text: """
-sonar.projectKey=${config.projectKey}
-sonar.projectName=${config.projectKey}
-sonar.projectVersion=1.0
-sonar.sources=.
-sonar.exclusions=**/node_modules/**,**/target/**,**/*.test.js,**/*.spec.js,**/test/**,**/tests/**,**/__tests__/**,**/coverage/**,**/build/**,**/dist/**
-sonar.host.url=${config.sonarHostUrl}
-"""
-            
-            echo "Running SonarQube analysis..."
-            sh """
-                export SONAR_TOKEN='${config.sonarToken}'
-                sonar-scanner -Dsonar.login=\$SONAR_TOKEN
-            """
-            
-            echo "SonarQube analysis completed successfully!"
+        echo "🔎 Running SonarQube analysis using official Docker image..."
+        try {
+            // 2. Token'ı güvenli bir şekilde withEnv bloğuna al
+            withEnv(["SONAR_SECRET=${config.sonarToken}"]) {
+                
+                // 3. sonar-project.properties dosyasını workspace'e yaz.
+                // Bu, komut satırını temiz tutar.
+                writeFile file: 'sonar-project.properties', text: """
+                    sonar.projectKey=${config.projectKey}
+                    sonar.sources=.
+                    sonar.host.url=${config.sonarHostUrl}
+                """
+
+                // 4. Resmi sonar-scanner imajını çalıştır.
+                // -v ile mevcut projenin kodlarını container içine bağlıyoruz.
+                // -e ile token'ı güvenli bir şekilde ortam değişkeni olarak veriyoruz.
+                // sonar-scanner, sonar-project.properties dosyasını otomatik olarak bulup okuyacaktır.
+                sh '''
+                    docker run --rm \\
+                        -v ${WORKSPACE}:/usr/src \\
+                        -e SONAR_TOKEN=${SONAR_SECRET} \\
+                        sonarsource/sonar-scanner-cli
+                '''
+            }
+            echo "✅ SonarQube analysis submitted successfully."
+        } catch (e) {
+            echo "❌ SonarQube analysis failed!"
+            error("Error during SonarQube analysis: ${e.toString()}")
         }
     }
 }
