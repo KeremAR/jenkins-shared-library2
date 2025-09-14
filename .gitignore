@@ -1,0 +1,21 @@
+# Ignore example service directories
+user-service/
+todo-service/
+
+# Ignore docker compose files related to the example services
+docker-compose.yml
+docker-compose.test.yml
+
+# Ignore frontend project directory
+frontend2/
+
+# IDE files
+.idea/
+.vscode/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Jenkinsfile in root
+Jenkinsfile

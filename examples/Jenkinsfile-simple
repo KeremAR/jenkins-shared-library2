@@ -8,8 +8,14 @@ def config = [
         [name: 'todo-service', dockerfile: 'todo-service/Dockerfile'],
         [name: 'frontend', dockerfile: 'frontend2/frontend/Dockerfile', context: 'frontend2/frontend/']
     ],
-    // Services that have tests to be run
-    testServices: ['user-service', 'todo-service'],
+    // Services that have unit tests to be run individually
+    unitTestServices: [
+        [name: 'user-service', dockerfile: 'user-service/Dockerfile.test', context: '.'],
+        [name: 'todo-service', dockerfile: 'todo-service/Dockerfile.test', context: '.']
+    ],
+    // Services that have integration tests to be run with docker-compose
+    integrationTestServices: ['user-service-test', 'todo-service-test'],
+    composeFile: 'docker-compose.test.yml',
     // Services to be deployed to Kubernetes
     deploymentServices: ['user-service', 'todo-service', 'frontend'],
     registry: 'ghcr.io',
@@ -56,11 +62,20 @@ pipeline {
             }
         }
 
-        stage('Run Tests') {
+        stage('Unit Tests') {
             steps {
                 script {
-                    echo "🧪 Running backend tests..."
-                    runBackendTests(services: config.testServices)
+                    echo "🧪 Running unit tests..."
+                    runUnitTests(services: config.unitTestServices)
+                }
+            }
+        }
+
+        stage('Integration Tests') {
+            steps {
+                script {
+                    echo "🧪 Running backend integration tests..."
+                    runIntegrationTests(services: config.integrationTestServices)
                 }
             }
         }
