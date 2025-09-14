@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 
 def call(Map config = [:]) {
-    def services = config.services ?: ['user-service', 'todo-service']
+    def services = config.services
     def composeFile = config.composeFile ?: 'docker-compose.test.yml'
     
     container('docker') {

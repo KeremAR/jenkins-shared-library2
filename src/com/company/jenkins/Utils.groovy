@@ -32,23 +32,10 @@ class Utils implements Serializable {
         '''
     }
     
-    static def getServiceConfig() {
-        return [
-            services: [
-                [name: 'user-service', dockerfile: 'user-service/Dockerfile'],
-                [name: 'todo-service', dockerfile: 'todo-service/Dockerfile'], 
-                [name: 'frontend', dockerfile: 'frontend2/frontend/Dockerfile', context: 'frontend2/frontend/']
-            ],
-            registry: 'ghcr.io',
-            username: 'keremar',
-            namespace: 'todo-app'
-        ]
-    }
-    
-    static def notifyGitHub(steps, status, message) {
+    static def notifyGitHub(steps, status, message, deploymentUrl = '') {
         steps.echo "${status == 'success' ? '✅' : '❌'} ${message}"
-        if (status == 'success') {
-            steps.echo "🚀 Application deployed to: http://todo-app.local"
+        if (status == 'success' && deploymentUrl) {
+            steps.echo "🚀 Application deployed to: ${deploymentUrl}"
         }
     }
 }

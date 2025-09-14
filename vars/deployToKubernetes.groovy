@@ -1,9 +1,9 @@
 #!/usr/bin/env groovy
 
 def call(Map config) {
-    def namespace = config.namespace ?: 'todo-app'
-    def manifestsPath = config.manifestsPath ?: 'k8s'
-    def services = config.services ?: ['user-service', 'todo-service', 'frontend']
+    def namespace = config.namespace
+    def manifestsPath = config.manifestsPath
+    def services = config.services
     
     container('docker') {
         echo "🔧 Installing kubectl..."

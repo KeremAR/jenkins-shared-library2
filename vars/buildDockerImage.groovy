@@ -2,14 +2,15 @@
 
 def call(Map config) {
     def serviceName = config.serviceName
+    def appName = config.appName
     def dockerfilePath = config.dockerfilePath ?: "${serviceName}/Dockerfile"
     def contextPath = config.contextPath ?: "."
-    def registry = config.registry ?: 'ghcr.io'
-    def username = config.username ?: 'keremar'
-    def imageTag = config.imageTag ?: env.BUILD_NUMBER
+    def registry = config.registry
+    def username = config.username
+    def imageTag = config.imageTag
     
-    def imageName = "${registry}/${username}/todo-app-${serviceName}:${imageTag}"
-    def latestImageName = "${registry}/${username}/todo-app-${serviceName}:latest"
+    def imageName = "${registry}/${username}/${appName}-${serviceName}:${imageTag}"
+    def latestImageName = "${registry}/${username}/${appName}-${serviceName}:latest"
     
     container('docker') {
         script {

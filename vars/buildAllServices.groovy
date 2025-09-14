@@ -1,14 +1,11 @@
 #!/usr/bin/env groovy
 
 def call(Map config) {
-    def services = config.services ?: [
-        [name: 'user-service', dockerfile: 'user-service/Dockerfile'],
-        [name: 'todo-service', dockerfile: 'todo-service/Dockerfile'],
-        [name: 'frontend', dockerfile: 'frontend2/frontend/Dockerfile', context: 'frontend2/frontend/']
-    ]
-    def registry = config.registry ?: 'ghcr.io'
-    def username = config.username ?: 'keremar'
-    def imageTag = config.imageTag ?: env.BUILD_NUMBER
+    def services = config.services
+    def registry = config.registry
+    def username = config.username
+    def imageTag = config.imageTag
+    def appName = config.appName
     
     def builtImages = []
     
@@ -23,7 +20,8 @@ def call(Map config) {
                 contextPath: service.context ?: '.',
                 registry: registry,
                 username: username,
-                imageTag: imageTag
+                imageTag: imageTag,
+                appName: appName
             ]
             
             def images = buildDockerImage(buildConfig)
