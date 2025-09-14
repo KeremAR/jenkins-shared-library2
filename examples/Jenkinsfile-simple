@@ -23,7 +23,7 @@ def config = [
     namespace: 'todo-app',
     manifestsPath: 'k8s',
     deploymentUrl: 'http://todo-app.local',
-    sonarProjectKey: 'keremar_todo-app'
+    sonarProjectKey: 'local-devops-infrastructure'
 ]
 
 pipeline {
