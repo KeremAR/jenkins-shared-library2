@@ -8,12 +8,15 @@ def call(Map config) {
     container('docker') {
         echo "🔎 Running SonarQube analysis..."
         try {
-            // Jenkins passes the credential content to the 'sonarToken' variable.
-            // We then expose this variable to the 'sh' step's environment using withEnv.
-            // This is the secure way to handle secrets and avoids shell injection or "bad substitution" errors.
+            // 1. Check if the token variable is null or empty
+            if (sonarToken == null || sonarToken.trim().isEmpty()) {
+                // Stop the pipeline with a clear error message
+                error("SonarQube token is missing or empty. Please check the 'sonarqube-token-id' credential in Jenkins.")
+            }
+            echo "DEBUG: Successfully received a SonarQube token."
+
+            // 2. Use withEnv to securely handle the secret
             withEnv(["SONAR_SECRET=${sonarToken}"]) {
-                // We use single quotes for the sh step to prevent Groovy from interpolating variables.
-                // The sonar-scanner-cli automatically picks up the SONAR_TOKEN environment variable.
                 sh '''
                     docker run --rm \\
                         -v ${WORKSPACE}:/usr/src \\
@@ -26,8 +29,9 @@ def call(Map config) {
             }
             echo "✅ SonarQube analysis submitted successfully."
         } catch (e) {
-            echo "❌ SonarQube analysis failed!"
-            throw e
+            echo "❌ SonarQube analysis failed! See the error below."
+            // 3. Make the error message visible and stop the pipeline
+            error("Error during SonarQube analysis: ${e.toString()}")
         }
     }
 }
