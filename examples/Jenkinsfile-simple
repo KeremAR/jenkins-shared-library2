@@ -23,7 +23,14 @@ def config = [
     namespace: 'todo-app',
     manifestsPath: 'k8s',
     deploymentUrl: 'local-devops-infrastructure',
-    sonarProjectKey: 'local-devops-infrastructure'
+
+    // Config for plugin-based SonarQube analysis
+    sonarScannerName: 'SonarQube-Scanner', // Name from Jenkins -> Tools
+    sonarServerName: 'sq1',               // Name from Jenkins -> System
+    sonarProjectKeyPlugin: 'Local-DevOps-Infrastructure',
+
+    //FOR HELM SETUP
+    //sonarProjectKey: 'local-devops-infrastructure'
 ]
 
 pipeline {
@@ -37,8 +44,9 @@ pipeline {
     environment {
         IMAGE_TAG = "${BUILD_NUMBER}"
         REGISTRY_CREDENTIALS = 'github-registry'
-        // SonarQube Environment Variables
-        SONAR_HOST_URL = 'http://sonarqube.local' // SonarQube server URL
+        
+        // FOR HELM SETUP
+      //  SONAR_HOST_URL = 'http://sonarqube.local' 
     }
 
     stages {
@@ -51,14 +59,23 @@ pipeline {
         stage('Static Code Analysis') {
             steps {
                 script {
-                    echo "🔎 Starting SonarQube analysis..."
+                    echo "🔎 Starting SonarQube analysis (Plugin Method)..."
+                    sonarQubeAnalysis(
+                        scannerName: config.sonarScannerName,
+                        serverName: config.sonarServerName,
+                        projectKey: config.sonarProjectKeyPlugin
+                    )
+
+//--------------------SonarQube Analysis (helm setup) Disabled for Now--------------------
+                    /*
                     withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
-                        runSonarQubeAnalysis(
+                        sonarQubeAnalysisHelm(
                             projectKey: config.sonarProjectKey,
                             sonarHostUrl: env.SONAR_HOST_URL,
                             sonarToken: env.SONAR_TOKEN
                         )
                     }
+                    */
                 }
             }
         }
