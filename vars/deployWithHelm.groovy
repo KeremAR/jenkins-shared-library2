@@ -35,17 +35,23 @@ def call(Map config) {
             '''
 
             echo "--- DEBUGGING (PRE-FLIGHT CHECK) ---"
-            echo "Step 1: Checking if the credential variable was loaded."
+            echo "Step 1: Verifying chart file structure inside the container"
+            sh "ls -lR helm-charts/todo-app"
+
+            echo "Step 2: Linting the Helm chart to check for errors"
+            sh "helm lint ${chartPath}"
+
+            echo "Step 3: Checking if the credential variable was loaded."
             sh 'echo "Credential character count: ${#DOCKER_CONFIG_JSON_B64}"'
 
-            echo "Step 2: Rendering the Helm template to inspect the generated Secret YAML."
-            // Note: Using single quotes for the groovy string and double quotes for the shell variable
-            // is the correct and secure way to handle this.
-            def helmTemplateCmd = "helm template ${releaseName} ${chartPath} --namespace ${namespace} --show-only templates/image-pull-secret.yaml"
+            echo "Step 4: Rendering the full Helm template to inspect the Secret YAML."
+            def helmTemplateCmd = "helm template ${releaseName} ${chartPath} --namespace ${namespace}"
             if (valuesFile) {
                 helmTemplateCmd += " -f ${valuesFile}"
             }
-            sh helmTemplateCmd + ' --set global.imagePullSecrets.dockerconfigjson="$DOCKER_CONFIG_JSON_B64"'
+            // Use single quotes for the groovy string, so the shell can expand the variable
+            // Pipe the output to grep to find our secret, and then to cat to print it.
+            sh helmTemplateCmd + ' --set global.imagePullSecrets.dockerconfigjson="$DOCKER_CONFIG_JSON_B64" | grep -A 5 "kind: Secret" || echo "Secret template did not render."'
             echo "--- END DEBUGGING ---"
 
             echo "🚀 Deploying with Helm..."
