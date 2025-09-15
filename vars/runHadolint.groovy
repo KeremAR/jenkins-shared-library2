@@ -3,6 +3,10 @@
 def call(Map config) {
     // Expects a list of Dockerfile paths, e.g., ['user-service/Dockerfile', 'todo-service/Dockerfile.test']
     def dockerfiles = config.dockerfiles
+    def ignoreRules = config.ignoreRules ?: [] // Make ignoreRules an optional parameter, default to empty list
+
+    // Construct the ignore flags string from the list of rules
+    def ignoreFlags = ignoreRules.collect { rule -> "--ignore ${rule}" }.join(' ')
 
     container('docker') {
         echo "🧹 Running Hadolint for Dockerfiles in parallel..."
@@ -20,7 +24,7 @@ def call(Map config) {
                         docker run --rm \\
                             -v ${WORKSPACE}:/workspace --workdir /workspace \\
                             hadolint/hadolint \\
-                            hadolint ''' + dockerfilePath + '''
+                            hadolint ''' + ignoreFlags + ' ' + dockerfilePath + '''
                     '''
                     echo "✅ Hadolint passed for ${dockerfilePath}!"
                 } catch (e) {

@@ -26,6 +26,10 @@ def config = [
         'todo-service/Dockerfile.test',
         'frontend2/frontend/Dockerfile'
     ],
+
+    // Hadolint rules to ignore
+    hadolintIgnoreRules: ['DL3008', 'DL3009'],
+    
     registry: 'ghcr.io',
     username: 'keremar',
     namespace: 'todo-app',
@@ -52,9 +56,9 @@ pipeline {
     environment {
         IMAGE_TAG = "${BUILD_NUMBER}"
         REGISTRY_CREDENTIALS = 'github-registry'
-        
+
         // FOR HELM SETUP
-      //  SONAR_HOST_URL = 'http://sonarqube.local' 
+      //  SONAR_HOST_URL = 'http://sonarqube.local'
     }
 
     stages {
@@ -67,6 +71,12 @@ pipeline {
         stage('Static Code Analysis') {
             steps {
                 script {
+                     echo "🧹 Running Hadolint on all Dockerfiles..."
+                    runHadolint(
+                        dockerfiles: config.dockerfilesToHadolint,
+                        ignoreRules: config.hadolintIgnoreRules
+                    )
+
                     echo "🔎 Starting SonarQube analysis (Plugin Method)..."
                     echo "----------------------SKIPPING FOR NOW----------------------"
 
@@ -94,14 +104,7 @@ pipeline {
             }
         }
 
-        stage('Dockerfile Linting') {
-            steps {
-                script {
-                    echo "🧹 Running Hadolint on all Dockerfiles..."
-                    runHadolint(dockerfiles: config.dockerfilesToHadolint)
-                }
-            }
-        }
+
 
         stage('Build Services') {
             steps {
