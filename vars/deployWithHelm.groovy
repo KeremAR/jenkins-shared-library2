@@ -34,6 +34,22 @@ def call(Map config) {
                 ./get_helm.sh
             '''
 
+            echo "--- DEBUGGING (PRE-FLIGHT CHECK) ---"
+            echo "Step 1: Checking if the credential variable was loaded."
+            sh 'echo "Credential character count: ${#DOCKER_CONFIG_JSON_B64}"'
+
+            echo "Step 2: Rendering the Helm template to inspect the generated Secret YAML."
+            def helmTemplateCmd = "helm template ${releaseName} ${chartPath} --namespace ${namespace} --show-only templates/image-pull-secret.yaml"
+            if (valuesFile) {
+                helmTemplateCmd += " -f ${valuesFile}"
+            }
+            if (dockerConfigJsonCredentialsId) {
+                sh "${helmTemplateCmd} --set global.imagePullSecrets.dockerconfigjson='\$DOCKER_CONFIG_JSON_B64'"
+            } else {
+                sh helmTemplateCmd
+            }
+            echo "--- END DEBUGGING ---"
+
             echo "🚀 Deploying with Helm..."
             
             // The pipeline will now create the namespace via Helm. This is the simplest and most reliable approach.
