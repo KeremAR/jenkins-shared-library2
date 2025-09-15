@@ -41,7 +41,7 @@ def call(Map config) {
             echo "Step 2: Rendering the Helm template to inspect the generated Secret YAML."
             // Note: Using single quotes for the groovy string and double quotes for the shell variable
             // is the correct and secure way to handle this.
-            def helmTemplateCmd = "helm template ${chartPath} --namespace ${namespace} --show-only templates/image-pull-secret.yaml"
+            def helmTemplateCmd = "helm template ${releaseName} ${chartPath} --namespace ${namespace} --show-only templates/image-pull-secret.yaml"
             if (valuesFile) {
                 helmTemplateCmd += " -f ${valuesFile}"
             }
