@@ -15,12 +15,13 @@ def call(Map config) {
                     echo "Linting ${dockerfilePath}..."
                     // Run Hadolint inside its official Docker container, mounting the workspace
                     // and passing the path to the Dockerfile to be linted.
-                    sh """
+                    // Use single quotes (' ' ') to prevent Groovy from interpolating ${env.WORKSPACE}
+                    sh '''
                         docker run --rm \\
-                            -v \${env.WORKSPACE}:/workspace --workdir /workspace \\
+                            -v ${WORKSPACE}:/workspace --workdir /workspace \\
                             hadolint/hadolint \\
-                            hadolint ${dockerfilePath}
-                    """
+                            hadolint ''' + dockerfilePath + '''
+                    '''
                     echo "✅ Hadolint passed for ${dockerfilePath}!"
                 } catch (e) {
                     echo "❌ Hadolint failed for ${dockerfilePath}!"
