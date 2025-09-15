@@ -33,6 +33,7 @@ def config = [
     // Trivy configuration
     trivySeverities: 'HIGH,CRITICAL',
     trivyFailBuild: true,
+    trivySkipDirs: ['/app/node_modules'],
     
     registry: 'ghcr.io',
     username: 'keremar',
@@ -135,7 +136,8 @@ pipeline {
                     runTrivyScan(
                         images: imagesToScan,
                         severities: config.trivySeverities,
-                        failOnVulnerabilities: config.trivyFailBuild
+                        failOnVulnerabilities: config.trivyFailBuild,
+                        skipDirs: config.trivySkipDirs
                     )
                 }
             }
