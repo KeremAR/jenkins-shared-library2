@@ -26,18 +26,45 @@ def call(Map config) {
 
     withCredentials([string(credentialsId: dockerConfigJsonCredentialsId, variable: 'DOCKER_CONFIG_JSON_B64')]) {
         container('docker') {
-            echo "🔧 Installing Helm..."
+            echo "🔧 Installing Helm & Kubectl..."
             sh '''
                 apk add --no-cache curl bash
                 curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
                 chmod 700 get_helm.sh
                 ./get_helm.sh
+
+                curl -LO "https://dl.k8s.io/release/v1.28.0/bin/linux/amd64/kubectl"
+                chmod +x kubectl
+                mv kubectl /usr/local/bin/
             '''
+
+            echo "pre-flight checks..."
+            // Step 1: Ensure the namespace exists.
+            sh "kubectl create namespace ${namespace} || echo 'Namespace ${namespace} already exists.'"
+
+            // Step 2: Apply the required RoleBinding for Jenkins to the namespace. This is idempotent.
+            def rbacYaml = """
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: jenkins-deploy-binding-${namespace}
+  namespace: ${namespace}
+subjects:
+- kind: ServiceAccount
+  name: jenkins
+  namespace: jenkins
+roleRef:
+  kind: ClusterRole
+  name: admin
+  apiGroup: rbac.authorization.k8s.io
+"""
+            sh "echo '${rbacYaml}' | kubectl apply -f -"
+
 
             echo "🚀 Deploying with Helm..."
             
-            // Construct the Helm command
-            def helmCmd = "helm upgrade --install ${releaseName} ${chartPath} --namespace ${namespace} --create-namespace --wait --timeout=5m"
+            // Construct the Helm command WITHOUT --create-namespace
+            def helmCmd = "helm upgrade --install ${releaseName} ${chartPath} --namespace ${namespace} --wait --timeout=5m"
 
             // Add values file if provided
             if (valuesFile) {
@@ -51,11 +78,11 @@ def call(Map config) {
             
             echo "Executing Helm command..." // We don't print the full command to avoid leaking the secret in logs
             
-            def commandToRun = helmCmd.join(' ')
+            def commandToRun = helmCmd
             if (dockerConfigJsonCredentialsId) {
                 // By using single quotes for the script, we prevent Groovy from interpolating the secret.
                 // The shell itself will safely substitute the environment variable. This avoids the Jenkins warning.
-                sh 'helm ' + commandToRun.split(' ', 2)[1] + ' --set global.imagePullSecrets.dockerconfigjson="$DOCKER_CONFIG_JSON_B64"'
+                sh "helm upgrade --install ${releaseName} ${chartPath} --namespace ${namespace} --wait --timeout=5m -f ${valuesFile} --set image.tag=${imageTag} --set global.imagePullSecrets.dockerconfigjson='\$DOCKER_CONFIG_JSON_B64'"
             } else {
                 sh commandToRun
             }
