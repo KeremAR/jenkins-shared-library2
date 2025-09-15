@@ -24,17 +24,24 @@ def call(Map config) {
         echo "🛡️ Running Trivy vulnerability scan for images in parallel..."
         def parallelScans = [:]
         images.each { imageName ->
-            // Sanitize image name for use as a valid Jenkins parallel stage name
+            // Sanitize image name for use as a valid Jenkins parallel stage name and directory name
             def stageName = imageName.replaceAll(/[^a-zA-Z0-9-]/, '_')
+
+            // Each parallel scan gets its own unique cache directory to prevent race conditions
+            def cacheDir = ".trivy-cache/${stageName}"
 
             parallelScans["Scan_${stageName}"] = {
                 try {
+                    // Ensure the unique cache directory exists on the agent before mounting
+                    sh "mkdir -p ${cacheDir}"
+
                     echo "Scanning ${imageName} for ${severities} vulnerabilities..."
-                    // Use single quotes to prevent Groovy interpolation issues
+                    // Use single quotes to prevent Groovy interpolation issues.
+                    // Mount a unique cache directory for each scan.
                     sh '''
                         docker run --rm \\
                             -v /var/run/docker.sock:/var/run/docker.sock \\
-                            -v ${WORKSPACE}/.trivy-cache:/root/.cache/trivy \\
+                            -v ${WORKSPACE}/''' + cacheDir + ''':/root/.cache/trivy \\
                             aquasec/trivy:latest \\
                             image \\
                             --exit-code ''' + exitCode + ''' \\

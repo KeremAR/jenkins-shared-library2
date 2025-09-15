@@ -28,7 +28,7 @@ def config = [
     ],
 
     // Hadolint rules to ignore
-    hadolintIgnoreRules: ['DL3008', 'DL3009'],
+    hadolintIgnoreRules: ['DL3008', 'DL3009', 'DL3016', 'DL3059'],
     
     // Trivy configuration
     trivySeverities: 'HIGH,CRITICAL',
