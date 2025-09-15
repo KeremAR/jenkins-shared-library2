@@ -10,24 +10,17 @@ def call(Map config) {
     }
 
     try {
-        echo "📝 Creating sonar-project.properties file with coverage paths..."
-        // Find all coverage.xml files in the reports directory and create a comma-separated string
-        def coveragePaths = findFiles(glob: 'reports/**/coverage.xml').collect { it.path }.join(',')
-        echo "Found coverage reports at: ${coveragePaths}"
-
+        echo "📝 Creating sonar-project.properties file..."
+        // No coverage paths are included in this version.
         writeFile file: 'sonar-project.properties', text: """
             sonar.projectKey=${config.projectKey}
             sonar.sources=.
             sonar.exclusions=**/node_modules/**,**/test/**
-            # Tell SonarQube where to find the coverage reports
-            sonar.python.coverage.reportPaths=${coveragePaths}
         """
         
         echo "🔎 Preparing SonarQube analysis environment and waiting for Quality Gate..."
         // Timeout the whole analysis and wait step after 15 minutes
         timeout(time: 15, unit: 'MINUTES') {
-            // This uses the SonarQube Scanner plugin configured in Jenkins "Manage Jenkins -> System"
-            // and the tool configured in "Manage Jenkins -> Tools".
             withSonarQubeEnv(config.serverName ?: 'sonarqube') {
                 def scannerHome = tool config.scannerName
                 sh "${scannerHome}/bin/sonar-scanner"
