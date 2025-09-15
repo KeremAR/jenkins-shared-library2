@@ -39,15 +39,13 @@ def call(Map config) {
             sh 'echo "Credential character count: ${#DOCKER_CONFIG_JSON_B64}"'
 
             echo "Step 2: Rendering the Helm template to inspect the generated Secret YAML."
-            def helmTemplateCmd = "helm template ${releaseName} ${chartPath} --namespace ${namespace} --show-only templates/image-pull-secret.yaml"
+            // Note: Using single quotes for the groovy string and double quotes for the shell variable
+            // is the correct and secure way to handle this.
+            def helmTemplateCmd = "helm template ${chartPath} --namespace ${namespace} --show-only templates/image-pull-secret.yaml"
             if (valuesFile) {
                 helmTemplateCmd += " -f ${valuesFile}"
             }
-            if (dockerConfigJsonCredentialsId) {
-                sh "${helmTemplateCmd} --set global.imagePullSecrets.dockerconfigjson='\$DOCKER_CONFIG_JSON_B64'"
-            } else {
-                sh helmTemplateCmd
-            }
+            sh helmTemplateCmd + ' --set global.imagePullSecrets.dockerconfigjson="$DOCKER_CONFIG_JSON_B64"'
             echo "--- END DEBUGGING ---"
 
             echo "🚀 Deploying with Helm..."
@@ -68,7 +66,8 @@ def call(Map config) {
             echo "Executing Helm command..." // We don't print the full command to avoid leaking the secret in logs
             
             if (dockerConfigJsonCredentialsId) {
-                sh "${helmCmd} --set global.imagePullSecrets.dockerconfigjson='\$DOCKER_CONFIG_JSON_B64'"
+                // Correctly expand the shell variable by using double quotes inside a single-quoted groovy string.
+                sh helmCmd + ' --set global.imagePullSecrets.dockerconfigjson="$DOCKER_CONFIG_JSON_B64"'
             } else {
                 sh helmCmd
             }
