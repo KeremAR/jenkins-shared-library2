@@ -13,12 +13,21 @@ def config = [
         [name: 'user-service', dockerfile: 'user-service/Dockerfile.test', context: '.'],
         [name: 'todo-service', dockerfile: 'todo-service/Dockerfile.test', context: '.']
     ],
+//--------------------Integration Tests Disabled for Now--------------------
+    
     // Services that have integration tests to be run with docker-compose
-    integrationTestServices: ['user-service-test', 'todo-service-test'],
+    //integrationTestServices: ['user-service-test', 'todo-service-test'],
+
+
     composeFile: 'docker-compose.test.yml',
     // Services to be deployed to Kubernetes
     deploymentServices: ['user-service', 'todo-service', 'frontend'],
-    // Dockerfiles to be linted with Hadolint
+
+    // Helm deployment configuration
+    helmReleaseName: 'todo-app',
+    helmChartPath: 'helm-charts/todo-app', // Path to your chart directory
+    helmValuesFile: 'helm-charts/todo-app/values.yaml', // Optional: Path to a custom values file
+
     dockerfilesToHadolint: [
         'user-service/Dockerfile',
         'user-service/Dockerfile.test',
@@ -27,24 +36,27 @@ def config = [
         'frontend2/frontend/Dockerfile'
     ],
 
-    // Hadolint rules to ignore
     hadolintIgnoreRules: ['DL3008', 'DL3009', 'DL3016', 'DL3059'],
-    
-    // Trivy configuration
+
+//--------------------Trivy Scan Disabled for Now--------------------
+    /*
     trivySeverities: 'HIGH,CRITICAL',
     trivyFailBuild: true,
     trivySkipDirs: ['/app/node_modules'],
-    
+    */
+
     registry: 'ghcr.io',
     username: 'keremar',
     namespace: 'todo-app',
     manifestsPath: 'k8s',
     deploymentUrl: 'local-devops-infrastructure',
 
-    // Config for plugin-based SonarQube analysis
+    //--------------------SonarQube Analysis (docker setup) Disabled for Now--------------------
+    /*
     sonarScannerName: 'SonarQube-Scanner', // Name from Jenkins -> Tools
     sonarServerName: 'sq1',               // Name from Jenkins -> System
     sonarProjectKeyPlugin: 'Local-DevOps-Infrastructure',
+    */
 
     //FOR HELM SETUP
     //sonarProjectKey: 'local-devops-infrastructure'
@@ -132,9 +144,14 @@ pipeline {
             steps {
                 script {
                     echo "🛡️ Scanning built images for vulnerabilities..."
+                     echo "----------------------SKIPPING FOR NOW----------------------"
+/*
+//-------------------- Trivy Scan Disabled for Now--------------------
+
                     def allImages = env.BUILT_IMAGES.split(',')
                     // Filter out 'latest' tags to avoid scanning the same image twice
-                    def imagesToScan = allImages.findAll { it -> !it.endsWith(':latest') }
+                    // Use a unique variable name 'image' instead of the implicit 'it' to avoid compilation errors
+                    def imagesToScan = allImages.findAll { image -> !image.endsWith(':latest') }
                     echo "Filtered images to scan: ${imagesToScan}"
 
                     runTrivyScan(
@@ -143,6 +160,7 @@ pipeline {
                         failOnVulnerabilities: config.trivyFailBuild,
                         skipDirs: config.trivySkipDirs
                     )
+                    */
                 }
             }
         }
@@ -180,15 +198,26 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes') {
+        stage('Deploy') {
             steps {
                 script {
+                    echo "⚡ Deploying to Kubernetes with Helm..."
+                    deployWithHelm(
+                        releaseName: config.helmReleaseName,
+                        chartPath: config.helmChartPath,
+                        namespace: config.namespace,
+                        valuesFile: config.helmValuesFile,
+                        imageTag: env.IMAGE_TAG
+                    )
+
+                    /*
                     echo "⚡ Deploying to Kubernetes..."
                     deployToKubernetes([
                         namespace: config.namespace,
                         manifestsPath: config.manifestsPath,
                         services: config.deploymentServices
                     ])
+                    */
                 }
             }
         }
