@@ -30,6 +30,10 @@ def config = [
     // Hadolint rules to ignore
     hadolintIgnoreRules: ['DL3008', 'DL3009'],
     
+    // Trivy configuration
+    trivySeverities: 'HIGH,CRITICAL',
+    trivyFailBuild: true,
+    
     registry: 'ghcr.io',
     username: 'keremar',
     namespace: 'todo-app',
@@ -119,6 +123,20 @@ pipeline {
                     )
                     env.BUILT_IMAGES = builtImages.join(',')
                     echo "Built images: ${env.BUILT_IMAGES}"
+                }
+            }
+        }
+
+        stage('Security Scan') {
+            steps {
+                script {
+                    echo "🛡️ Scanning built images for vulnerabilities..."
+                    def imagesToScan = env.BUILT_IMAGES.split(',')
+                    runTrivyScan(
+                        images: imagesToScan,
+                        severities: config.trivySeverities,
+                        failOnVulnerabilities: config.trivyFailBuild
+                    )
                 }
             }
         }
