@@ -132,7 +132,11 @@ pipeline {
             steps {
                 script {
                     echo "🛡️ Scanning built images for vulnerabilities..."
-                    def imagesToScan = env.BUILT_IMAGES.split(',')
+                    def allImages = env.BUILT_IMAGES.split(',')
+                    // Filter out 'latest' tags to avoid scanning the same image twice
+                    def imagesToScan = allImages.findAll { it -> !it.endsWith(':latest') }
+                    echo "Filtered images to scan: ${imagesToScan}"
+
                     runTrivyScan(
                         images: imagesToScan,
                         severities: config.trivySeverities,

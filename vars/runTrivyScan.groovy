@@ -46,40 +46,34 @@ def call(Map config) {
         }
 
 
-        // --- 2. Run parallel scans using the shared DB ---
-        echo "🛡️ Running Trivy vulnerability scan for images in parallel..."
-        def parallelScans = [:]
+        // --- 2. Run scans sequentially using the shared DB ---
+        echo "🛡️ Running Trivy vulnerability scan for images sequentially..."
         images.each { imageName ->
-            // Sanitize image name for use as a valid Jenkins parallel stage name
-            def stageName = imageName.replaceAll(/[^a-zA-Z0-9-]/, '_')
-
-            parallelScans["Scan_${stageName}"] = {
-                try {
-                    echo "Scanning ${imageName} for ${severities} vulnerabilities..."
-                    // Use single quotes to prevent Groovy interpolation issues.
-                    // Mount the SHARED cache directory and skip the DB update on each scan.
-                    sh '''
-                        docker run --rm \\
-                            -v /var/run/docker.sock:/var/run/docker.sock \\
-                            -v ${WORKSPACE}/''' + sharedCacheDir + ''':/root/.cache/trivy \\
-                            aquasec/trivy:latest \\
-                            image \\
-                            --skip-db-update \\
-                            ''' + skipDirsFlags + ''' \\
-                            --exit-code ''' + exitCode + ''' \\
-                            --severity ''' + severities + ''' \\
-                            --scanners vuln \\
-                            --timeout ''' + timeout + ''' \\
-                            ''' + imageName + '''
-                    '''
-                    echo "✅ Trivy scan completed for ${imageName}. No vulnerabilities found at specified severity level."
-                } catch (e) {
-                    echo "❌ Trivy scan failed for ${imageName} or vulnerabilities were found!"
-                    throw e
-                }
+            try {
+                echo "--- Scanning ${imageName} for ${severities} vulnerabilities ---"
+                // Use single quotes to prevent Groovy interpolation issues.
+                // Mount the SHARED cache directory and skip the DB update on each scan.
+                sh '''
+                    docker run --rm \\
+                        -v /var/run/docker.sock:/var/run/docker.sock \\
+                        -v ${WORKSPACE}/''' + sharedCacheDir + ''':/root/.cache/trivy \\
+                        aquasec/trivy:latest \\
+                        image \\
+                        --skip-db-update \\
+                        ''' + skipDirsFlags + ''' \\
+                        --exit-code ''' + exitCode + ''' \\
+                        --severity ''' + severities + ''' \\
+                        --scanners vuln \\
+                        --timeout ''' + timeout + ''' \\
+                        ''' + imageName + '''
+                '''
+                echo "✅ Trivy scan completed for ${imageName}. No vulnerabilities found at specified severity level."
+            } catch (e) {
+                echo "❌ Trivy scan failed for ${imageName} or vulnerabilities were found!"
+                // Re-throw the exception to fail the pipeline stage
+                throw e
             }
         }
-        parallel parallelScans
         echo "🎉 All Trivy scans completed!"
     }
 }
