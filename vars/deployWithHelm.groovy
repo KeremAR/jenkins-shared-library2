@@ -9,6 +9,7 @@
  *               - namespace (required): The Kubernetes namespace to deploy into.
  *               - valuesFile (optional): The path to a custom values.yaml file.
  *               - imageTag (optional): The image tag to set in the Helm chart.
+ *               - dockerConfigJsonCredentialsId (optional): The ID of the Jenkins 'Secret text' credential containing the base64 docker config.
  */
 def call(Map config) {
     // --- Configuration Validation ---
@@ -21,37 +22,42 @@ def call(Map config) {
     def namespace = config.namespace
     def valuesFile = config.valuesFile
     def imageTag = config.imageTag
+    def dockerConfigJsonCredentialsId = config.dockerConfigJsonCredentialsId
 
-    container('docker') {
-        echo "🔧 Installing Helm..."
-        sh '''
-            apk add --no-cache curl bash
-            curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-            chmod 700 get_helm.sh
-            ./get_helm.sh
-        '''
+    withCredentials([string(credentialsId: dockerConfigJsonCredentialsId, variable: 'DOCKER_CONFIG_JSON_B64')]) {
+        container('docker') {
+            echo "🔧 Installing Helm..."
+            sh '''
+                apk add --no-cache curl bash
+                curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+                chmod 700 get_helm.sh
+                ./get_helm.sh
+            '''
 
-        echo "🚀 Deploying with Helm..."
-        
-        // Construct the Helm command
-        def helmCmd = "helm upgrade --install ${releaseName} ${chartPath} --namespace ${namespace} --create-namespace --wait --timeout=5m"
+            echo "🚀 Deploying with Helm..."
+            
+            // Construct the Helm command
+            def helmCmd = "helm upgrade --install ${releaseName} ${chartPath} --namespace ${namespace} --create-namespace --wait --timeout=5m"
 
-        // Add values file if provided
-        if (valuesFile) {
-            helmCmd += " -f ${valuesFile}"
+            // Add values file if provided
+            if (valuesFile) {
+                helmCmd += " -f ${valuesFile}"
+            }
+
+            // Set image tag if provided
+            if (imageTag) {
+                helmCmd += " --set image.tag=${imageTag}"
+            }
+            
+            // Set docker config json if credential ID is provided
+            if (dockerConfigJsonCredentialsId) {
+                helmCmd += " --set global.imagePullSecrets.dockerconfigjson=${env.DOCKER_CONFIG_JSON_B64}"
+            }
+            
+            echo "Executing Helm command..." // We don't print the full command to avoid leaking the secret in logs
+            sh helmCmd
+            
+            echo "✅ Helm deployment for release '${releaseName}' completed successfully!"
         }
-
-        // Set image tag if provided
-        if (imageTag) {
-            // This is a common pattern, but might need adjustment based on the chart's values structure.
-            // e.g., --set image.tag, --set frontend.image.tag, etc.
-            // For now, we assume a global image.tag
-            helmCmd += " --set image.tag=${imageTag}"
-        }
-        
-        echo "Executing Helm command: ${helmCmd}"
-        sh helmCmd
-        
-        echo "✅ Helm deployment for release '${releaseName}' completed successfully!"
     }
 }

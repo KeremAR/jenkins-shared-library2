@@ -27,6 +27,7 @@ def config = [
     helmReleaseName: 'todo-app',
     helmChartPath: 'helm-charts/todo-app', // Path to your chart directory
     helmValuesFile: 'helm-charts/todo-app/values.yaml', // Optional: Path to a custom values file
+    helmDockerConfigJsonCredentialsId: 'github-registry-dockerconfig', // Jenkins credential ID for the docker config json
 
     dockerfilesToHadolint: [
         'user-service/Dockerfile',
@@ -207,7 +208,8 @@ pipeline {
                         chartPath: config.helmChartPath,
                         namespace: config.namespace,
                         valuesFile: config.helmValuesFile,
-                        imageTag: env.IMAGE_TAG
+                        imageTag: env.IMAGE_TAG,
+                        dockerConfigJsonCredentialsId: config.helmDockerConfigJsonCredentialsId
                     )
 
                     /*

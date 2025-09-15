@@ -1,6 +1,7 @@
 # Ignore example service directories
 user-service/
 todo-service/
+helm-charts/
 
 # Ignore docker compose files related to the example services
 docker-compose.yml
