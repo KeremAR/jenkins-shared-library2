@@ -49,13 +49,16 @@ def call(Map config) {
                 helmCmd += " --set image.tag=${imageTag}"
             }
             
-            // Set docker config json if credential ID is provided
-            if (dockerConfigJsonCredentialsId) {
-                helmCmd += " --set global.imagePullSecrets.dockerconfigjson=${env.DOCKER_CONFIG_JSON_B64}"
-            }
-            
             echo "Executing Helm command..." // We don't print the full command to avoid leaking the secret in logs
-            sh helmCmd
+            
+            def commandToRun = helmCmd.join(' ')
+            if (dockerConfigJsonCredentialsId) {
+                // By using single quotes for the script, we prevent Groovy from interpolating the secret.
+                // The shell itself will safely substitute the environment variable. This avoids the Jenkins warning.
+                sh 'helm ' + commandToRun.split(' ', 2)[1] + ' --set global.imagePullSecrets.dockerconfigjson="$DOCKER_CONFIG_JSON_B64"'
+            } else {
+                sh commandToRun
+            }
             
             echo "✅ Helm deployment for release '${releaseName}' completed successfully!"
         }
