@@ -36,8 +36,8 @@ def call(Map config) {
 
             echo "🚀 Deploying with Helm..."
             
-            // Construct the Helm command. --create-namespace will now work due to cluster-admin permissions.
-            def helmCmd = "helm upgrade --install ${releaseName} ${chartPath} --namespace ${namespace} --create-namespace --wait --timeout=5m"
+            // Construct the Helm command. Assumes namespace is manually created with correct RBAC.
+            def helmCmd = "helm upgrade --install ${releaseName} ${chartPath} --namespace ${namespace} --wait --timeout=5m"
 
             // Add values file if provided
             if (valuesFile) {
