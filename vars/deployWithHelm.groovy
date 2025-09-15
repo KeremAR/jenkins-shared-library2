@@ -26,17 +26,29 @@ def call(Map config) {
 
     withCredentials([string(credentialsId: dockerConfigJsonCredentialsId, variable: 'DOCKER_CONFIG_JSON_B64')]) {
         container('docker') {
-            echo "🔧 Installing Helm..."
+            echo "🔧 Installing Helm & Kubectl..."
             sh '''
                 apk add --no-cache curl bash
                 curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
                 chmod 700 get_helm.sh
                 ./get_helm.sh
+
+                curl -LO "https://dl.k8s.io/release/v1.28.0/bin/linux/amd64/kubectl"
+                chmod +x kubectl
+                mv kubectl /usr/local/bin/
             '''
+
+            echo "Pre-flight check: Preparing namespace for Helm..."
+            // Add the required labels and annotations to the manually created namespace
+            // so that Helm can install a new release into it. --overwrite makes this idempotent.
+            sh "kubectl label namespace ${namespace} app.kubernetes.io/managed-by=Helm --overwrite"
+            sh "kubectl annotate namespace ${namespace} meta.helm.sh/release-name=${releaseName} --overwrite"
+            sh "kubectl annotate namespace ${namespace} meta.helm.sh/release-namespace=${namespace} --overwrite"
+
 
             echo "🚀 Deploying with Helm..."
             
-            // Construct the Helm command. Assumes namespace is manually created with correct RBAC.
+            // Construct the Helm command. Assumes namespace is manually created.
             def helmCmd = "helm upgrade --install ${releaseName} ${chartPath} --namespace ${namespace} --wait --timeout=5m"
 
             // Add values file if provided
