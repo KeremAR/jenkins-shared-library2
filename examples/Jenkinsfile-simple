@@ -261,6 +261,7 @@ pipeline {
                         helmReleaseName: config.helmReleaseName,
                         helmChartPath: config.helmChartPath,
                         helmDockerConfigJsonCredentialsId: config.helmDockerConfigJsonCredentialsId,
+                        registryCredentialsId: env.REGISTRY_CREDENTIALS,
                         services: config.services,
                         registry: config.registry,
                         username: config.username,

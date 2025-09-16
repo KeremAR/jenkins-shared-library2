@@ -13,11 +13,12 @@
  *               - registry
  *               - username
  *               - appName
+ *               - registryCredentialsId
  */
 def call(Map config) {
     // --- Configuration Validation ---
-    if (!config.helmReleaseName || !config.helmChartPath || !config.helmDockerConfigJsonCredentialsId || !config.services) {
-        error("Missing required parameters: 'helmReleaseName', 'helmChartPath', 'helmDockerConfigJsonCredentialsId', and 'services' must be provided.")
+    if (!config.helmReleaseName || !config.helmChartPath || !config.helmDockerConfigJsonCredentialsId || !config.services || !config.registryCredentialsId) {
+        error("Missing required parameters: 'helmReleaseName', 'helmChartPath', 'helmDockerConfigJsonCredentialsId', 'services', and 'registryCredentialsId' must be provided.")
     }
     if (!env.TAG_NAME) {
         error("This function should only be run on a Git tag. No TAG_NAME found.")
@@ -31,7 +32,7 @@ def call(Map config) {
     echo "🚀 Promoting to version '${productionImageTag}' for Production Environment..."
 
     container('docker') {
-        withCredentials([usernamePassword(credentialsId: config.helmDockerConfigJsonCredentialsId, passwordVariable: 'REGISTRY_PASSWORD', usernameVariable: 'REGISTRY_USERNAME')]) {
+        withCredentials([usernamePassword(credentialsId: config.registryCredentialsId, passwordVariable: 'REGISTRY_PASSWORD', usernameVariable: 'REGISTRY_USERNAME')]) {
             sh "echo \$REGISTRY_PASSWORD | docker login ${config.registry} -u \$REGISTRY_USERNAME --password-stdin"
 
             // For each service, pull the 'latest' image, re-tag it with the production version, and push the new tag.
