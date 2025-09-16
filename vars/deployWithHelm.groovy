@@ -51,28 +51,35 @@ def call(Map config) {
             }
             // Use single quotes for the groovy string, so the shell can expand the variable
             // Pipe the output to grep to find our secret, and then to cat to print it.
+            // Bu komut, 'global.imagePullSecrets.dockerconfigjson' değerinin template'e doğru şekilde geçip geçmediğini doğrulamak için kullanılır.
             sh helmTemplateCmd + ' --set global.imagePullSecrets.dockerconfigjson="$DOCKER_CONFIG_JSON_B64" | grep -A 5 "kind: Secret" || echo "Secret template did not render."'
             echo "--- END DEBUGGING ---"
 
             echo "🚀 Deploying with Helm..."
             
-            // The pipeline will now create the namespace via Helm. This is the simplest and most reliable approach.
+            // Helm upgrade komutu, belirtilen sürüm yoksa onu kurar (install), varsa günceller (upgrade).
+            // --create-namespace: Eğer namespace mevcut değilse oluşturur.
+            // --wait: Dağıtımın tamamlanmasını ve tüm pod'ların hazır olmasını bekler.
+            // --timeout: 'wait' işleminin ne kadar süre bekleyeceğini belirtir.
             def helmCmd = "helm upgrade --install ${releaseName} ${chartPath} --namespace ${namespace} --create-namespace --wait --timeout=5m"
 
-            // Add values file if provided
+            // Eğer bir values dosyası belirtilmişse, komuta eklenir.
+            // Bu, staging ve production için farklı konfigürasyonlar kullanmamızı sağlar.
             if (valuesFile) {
                 helmCmd += " -f ${valuesFile}"
             }
 
-            // Set image tag if provided
+            // Eğer bir image tag'i belirtilmişse, bu Helm chart'ındaki 'image.tag' değerini ezer (override).
+            // Bu, her pipeline çalıştığında yeni oluşturulan imajı dağıtmamızı sağlar.
             if (imageTag) {
                 helmCmd += " --set image.tag=${imageTag}"
             }
             
-            echo "Executing Helm command..." // We don't print the full command to avoid leaking the secret in logs
+            echo "Executing Helm command..." // Güvenlik nedeniyle tam komutu loglara yazdırmıyoruz.
             
             if (dockerConfigJsonCredentialsId) {
-                // Correctly expand the shell variable by using double quotes inside a single-quoted groovy string.
+                // Özel Docker registry'sinden imaj çekebilmek için 'dockerconfigjson' credential'ını Helm komutuna iletiyoruz.
+                // Groovy'nin string'i içinde shell değişkeninin ($DOCKER_CONFIG_JSON_B64) doğru şekilde okunabilmesi için tırnak işaretlerine dikkat edilmelidir.
                 sh helmCmd + ' --set global.imagePullSecrets.dockerconfigjson="$DOCKER_CONFIG_JSON_B64"'
             } else {
                 sh helmCmd

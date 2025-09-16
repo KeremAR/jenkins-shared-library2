@@ -1,6 +1,6 @@
 @Library('todo-app-shared-library') _
 
-// All project-specific configuration is defined here
+// Projeye özgü tüm konfigürasyonlar burada tanımlanır.
 def config = [
     appName: 'todo-app',
     services: [
@@ -8,27 +8,13 @@ def config = [
         [name: 'todo-service', dockerfile: 'todo-service/Dockerfile'],
         [name: 'frontend', dockerfile: 'frontend2/frontend/Dockerfile', context: 'frontend2/frontend/']
     ],
-    // Services that have unit tests to be run individually
     unitTestServices: [
         [name: 'user-service', dockerfile: 'user-service/Dockerfile.test', context: '.'],
         [name: 'todo-service', dockerfile: 'todo-service/Dockerfile.test', context: '.']
     ],
-//--------------------Integration Tests Disabled for Now--------------------
-    
-    // Services that have integration tests to be run with docker-compose
-    //integrationTestServices: ['user-service-test', 'todo-service-test'],
-
-
-    composeFile: 'docker-compose.test.yml',
-    // Services to be deployed to Kubernetes
-    deploymentServices: ['user-service', 'todo-service', 'frontend'],
-
-    // Helm deployment configuration
     helmReleaseName: 'todo-app',
-    helmChartPath: 'helm-charts/todo-app', // Path to your chart directory
-    helmValuesFile: 'helm-charts/todo-app/values.yaml', // Optional: Path to a custom values file
-    helmDockerConfigJsonCredentialsId: 'github-registry-dockerconfig', // Jenkins credential ID for the docker config json
-
+    helmChartPath: 'helm-charts/todo-app',
+    helmDockerConfigJsonCredentialsId: 'github-registry-dockerconfig',
     dockerfilesToHadolint: [
         'user-service/Dockerfile',
         'user-service/Dockerfile.test',
@@ -36,31 +22,11 @@ def config = [
         'todo-service/Dockerfile.test',
         'frontend2/frontend/Dockerfile'
     ],
-
     hadolintIgnoreRules: ['DL3008', 'DL3009', 'DL3016', 'DL3059'],
-
-//--------------------Trivy Scan Disabled for Now--------------------
-    /*
-    trivySeverities: 'HIGH,CRITICAL',
-    trivyFailBuild: true,
-    trivySkipDirs: ['/app/node_modules'],
-    */
-
     registry: 'ghcr.io',
     username: 'keremar',
-    namespace: 'todo-app',
-    manifestsPath: 'k8s',
-    deploymentUrl: 'local-devops-infrastructure',
-
-    //--------------------SonarQube Analysis (docker setup) Disabled for Now--------------------
-    /*
-    sonarScannerName: 'SonarQube-Scanner', // Name from Jenkins -> Tools
-    sonarServerName: 'sq1',               // Name from Jenkins -> System
-    sonarProjectKeyPlugin: 'Local-DevOps-Infrastructure',
-    */
-
-    //FOR HELM SETUP
-    //sonarProjectKey: 'local-devops-infrastructure'
+    namespace: 'todo-app', // Bu artık staging/prod için override edilecek
+    deploymentUrl: 'local-devops-infrastructure'
 ]
 
 pipeline {
@@ -72,14 +38,16 @@ pipeline {
     }
 
     environment {
+        // BUILD_NUMBER, her build için Jenkins tarafından otomatik olarak artırılan bir ortam değişkenidir.
+        // Docker imajlarını benzersiz bir şekilde etiketlemek için kullanılır.
         IMAGE_TAG = "${BUILD_NUMBER}"
         REGISTRY_CREDENTIALS = 'github-registry'
-
-        // FOR HELM SETUP
-      //  SONAR_HOST_URL = 'http://sonarqube.local'
     }
 
     stages {
+        // --- AŞAMA 1: DOĞRULAMA (VALIDATION) ---
+        // Bu aşamalar, production'a dağıtım yapılan tag'ler DIŞINDAKİ tüm branch'lerde (feature/*, master, vb.) çalışır.
+        // Amaç, kodu build etmek, analiz etmek ve test etmektir.
         stage('Checkout') {
             steps {
                 checkout scm
@@ -87,47 +55,27 @@ pipeline {
         }
 
         stage('Static Code Analysis') {
+            when {
+                not { tag 'v*' }
+            }
             steps {
                 script {
-                     echo "🧹 Running Hadolint on all Dockerfiles..."
+                    echo "🧹 Running Hadolint on all Dockerfiles..."
                     runHadolint(
                         dockerfiles: config.dockerfilesToHadolint,
                         ignoreRules: config.hadolintIgnoreRules
                     )
-
-                    echo "🔎 Starting SonarQube analysis (Plugin Method)..."
-                    echo "----------------------SKIPPING FOR NOW----------------------"
-
-
-//--------------------SonarQube Analysis (docker setup) Disabled for Now--------------------
-                    /*
-                    sonarQubeAnalysis(
-                        scannerName: config.sonarScannerName,
-                        serverName: config.sonarServerName,
-                        projectKey: config.sonarProjectKeyPlugin
-                    )
-                    */
-
-//--------------------SonarQube Analysis (helm setup) Disabled for Now--------------------
-                    /*
-                    withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
-                        sonarQubeAnalysisHelm(
-                            projectKey: config.sonarProjectKey,
-                            sonarHostUrl: env.SONAR_HOST_URL,
-                            sonarToken: env.SONAR_TOKEN
-                        )
-                    }
-                    */
                 }
             }
         }
 
-
-
         stage('Build Services') {
+            when {
+                not { tag 'v*' }
+            }
             steps {
                 script {
-                    echo "🔨 Building all services in parallel..."
+                    echo "🔨 Building all services..."
                     def builtImages = buildAllServices(
                         services: config.services,
                         registry: config.registry,
@@ -141,32 +89,10 @@ pipeline {
             }
         }
 
-        stage('Security Scan') {
-            steps {
-                script {
-                    echo "🛡️ Scanning built images for vulnerabilities..."
-                     echo "----------------------SKIPPING FOR NOW----------------------"
-/*
-//-------------------- Trivy Scan Disabled for Now--------------------
-
-                    def allImages = env.BUILT_IMAGES.split(',')
-                    // Filter out 'latest' tags to avoid scanning the same image twice
-                    // Use a unique variable name 'image' instead of the implicit 'it' to avoid compilation errors
-                    def imagesToScan = allImages.findAll { image -> !image.endsWith(':latest') }
-                    echo "Filtered images to scan: ${imagesToScan}"
-
-                    runTrivyScan(
-                        images: imagesToScan,
-                        severities: config.trivySeverities,
-                        failOnVulnerabilities: config.trivyFailBuild,
-                        skipDirs: config.trivySkipDirs
-                    )
-                    */
-                }
-            }
-        }
-
         stage('Unit Tests') {
+            when {
+                not { tag 'v*' }
+            }
             steps {
                 script {
                     echo "🧪 Running unit tests..."
@@ -175,17 +101,13 @@ pipeline {
             }
         }
 
-        stage('Integration Tests') {
-            steps {
-                script {
-                    echo "🧪 Running backend integration tests..."
-                    echo "----------------------SKIPPING FOR NOW----------------------"
-                    // runIntegrationTests(services: config.integrationTestServices)
-                }
-            }
-        }
-
+        // --- AŞAMA 2: ENTEGRASYON & STAGING DAĞITIMI ---
+        // Bu aşamalar, sadece 'master' dalına bir kod merge edildiğinde çalışır.
+        // Önce imajlar registry'ye push'lanır, ardından 'staging' ortamına dağıtılır.
         stage('Push to Registry') {
+            when {
+                branch 'master'
+            }
             steps {
                 script {
                     echo "🚀 Pushing images to registry..."
@@ -199,27 +121,50 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy to Staging') {
+            when {
+                branch 'master'
+            }
             steps {
                 script {
-                    echo "⚡ Deploying to Kubernetes with Helm..."
+                    echo "⚡ Deploying to Staging Environment..."
                     deployWithHelm(
-                        releaseName: config.helmReleaseName,
+                        releaseName: "${config.helmReleaseName}-staging",
                         chartPath: config.helmChartPath,
-                        namespace: config.namespace,
-                        valuesFile: config.helmValuesFile,
+                        namespace: 'staging',
+                        valuesFile: 'helm-charts/todo-app/values-staging.yaml',
                         imageTag: env.IMAGE_TAG,
                         dockerConfigJsonCredentialsId: config.helmDockerConfigJsonCredentialsId
                     )
+                }
+            }
+        }
 
-                    /*
-                    echo "⚡ Deploying to Kubernetes..."
-                    deployToKubernetes([
-                        namespace: config.namespace,
-                        manifestsPath: config.manifestsPath,
-                        services: config.deploymentServices
-                    ])
-                    */
+        // --- AŞAMA 3: PRODUCTION'A YÜKSELTME (PROMOTION) ---
+        // Bu aşama, sadece 'v' ile başlayan bir Git tag'i (örn: v1.0.0) push'landığında tetiklenir.
+        // Build ve test adımlarını atlar, direkt olarak production dağıtımını yapar.
+        stage('Deploy to Production') {
+            when {
+                tag 'v*'
+            }
+            steps {
+                script {
+                    // Production dağıtımı öncesi manuel onay istenir.
+                    input message: "Deploy to Production Environment? (Tag: ${env.TAG_NAME})", ok: 'Deploy'
+                    
+                    // Git tag'indeki 'v' önekini kaldırarak imaj tag'ini elde ediyoruz.
+                    // Örn: Git tag 'v1.2.3' ise, imaj tag'i '1.2.3' olur.
+                    def productionImageTag = env.TAG_NAME.replace('v', '')
+                    
+                    echo "⚡ Deploying tag '${productionImageTag}' to Production Environment..."
+                    deployWithHelm(
+                        releaseName: "${config.helmReleaseName}-prod",
+                        chartPath: config.helmChartPath,
+                        namespace: 'production',
+                        valuesFile: 'helm-charts/todo-app/values-prod.yaml',
+                        imageTag: productionImageTag,
+                        dockerConfigJsonCredentialsId: config.helmDockerConfigJsonCredentialsId
+                    )
                 }
             }
         }
