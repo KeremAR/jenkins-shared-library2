@@ -34,8 +34,9 @@ def call(Map config) {
         '''
 
         // 'helm uninstall' command gracefully handles cases where the release does not exist,
-        // preventing the pipeline from failing unnecessarily.
-        sh "helm uninstall ${releaseName} --namespace ${namespace}"
+        // preventing the pipeline from failing unnecessarily. By appending '|| true', we ensure
+        // that the sh step succeeds even if Helm returns an error (e.g., release not found).
+        sh "helm uninstall ${releaseName} --namespace ${namespace} || true"
         
         echo "✅ Cleanup for release '${releaseName}' completed successfully."
     }
