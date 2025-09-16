@@ -239,6 +239,21 @@ pipeline {
 
         // --- AŞAMA 3: PRODUCTION'A YÜKSELTME (PROMOTION) ---
         // Bu aşama, sadece 'v' ile başlayan bir Git tag'i (örn: v1.0.0) push'landığında tetiklenir.
+
+        stage('Cleanup Staging') {
+            when {
+                tag 'v*'
+            }
+            steps {
+                script {
+                    cleanupHelmRelease(
+                        releaseName: "${config.helmReleaseName}-staging",
+                        namespace: 'staging'
+                    )
+                }
+            }
+        }
+
         // Build ve test adımlarını atlar, direkt olarak production dağıtımını yapar.
         stage('Deploy to Production') {
             when {
