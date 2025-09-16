@@ -69,10 +69,10 @@ def call(Map config) {
                 helmCmd += " -f ${valuesFile}"
             }
 
-            // Eğer bir image tag'i belirtilmişse, bu Helm chart'ındaki 'image.tag' değerini ezer (override).
-            // Bu, her pipeline çalıştığında yeni oluşturulan imajı dağıtmamızı sağlar.
+            // Eğer bir image tag'i belirtilmişse, bu Helm chart'ındaki 'global.image.tag' değerini ezer (override).
+            // Bu, her pipeline çalıştığında tüm servisler için yeni oluşturulan imajı dağıtmamızı sağlar.
             if (imageTag) {
-                helmCmd += " --set image.tag=${imageTag}"
+                helmCmd += " --set global.image.tag=${imageTag}"
             }
             
             echo "Executing Helm command..." // Güvenlik nedeniyle tam komutu loglara yazdırmıyoruz.
