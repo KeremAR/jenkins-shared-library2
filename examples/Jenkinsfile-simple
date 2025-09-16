@@ -224,14 +224,10 @@ pipeline {
             }
             steps {
                 script {
-                    echo "⚡ Deploying to Staging Environment..."
-                    deployWithHelm(
-                        releaseName: "${config.helmReleaseName}-staging",
-                        chartPath: config.helmChartPath,
-                        namespace: 'staging',
-                        valuesFile: 'helm-charts/todo-app/values-staging.yaml',
-                        imageTag: env.IMAGE_TAG,
-                        dockerConfigJsonCredentialsId: config.helmDockerConfigJsonCredentialsId
+                    deployToStaging(
+                        helmReleaseName: config.helmReleaseName,
+                        helmChartPath: config.helmChartPath,
+                        helmDockerConfigJsonCredentialsId: config.helmDockerConfigJsonCredentialsId
                     )
                 }
             }
@@ -261,21 +257,10 @@ pipeline {
             }
             steps {
                 script {
-                    // Production dağıtımı öncesi manuel onay istenir.
-                    input message: "Deploy to Production Environment? (Tag: ${env.TAG_NAME})", ok: 'Deploy'
-                    
-                    // Git tag'indeki 'v' önekini kaldırarak imaj tag'ini elde ediyoruz.
-                    // Örn: Git tag 'v1.2.3' ise, imaj tag'i '1.2.3' olur.
-                    def productionImageTag = env.TAG_NAME.replace('v', '')
-                    
-                    echo "⚡ Deploying tag '${productionImageTag}' to Production Environment..."
-                    deployWithHelm(
-                        releaseName: "${config.helmReleaseName}-prod",
-                        chartPath: config.helmChartPath,
-                        namespace: 'production',
-                        valuesFile: 'helm-charts/todo-app/values-prod.yaml',
-                        imageTag: productionImageTag,
-                        dockerConfigJsonCredentialsId: config.helmDockerConfigJsonCredentialsId
+                    deployToProduction(
+                        helmReleaseName: config.helmReleaseName,
+                        helmChartPath: config.helmChartPath,
+                        helmDockerConfigJsonCredentialsId: config.helmDockerConfigJsonCredentialsId
                     )
                 }
             }
