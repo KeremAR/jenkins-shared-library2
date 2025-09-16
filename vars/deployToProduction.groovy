@@ -31,8 +31,8 @@ def call(Map config) {
     echo "🚀 Promoting to version '${productionImageTag}' for Production Environment..."
 
     container('docker') {
-        withCredentials([string(credentialsId: 'github-registry', variable: 'REGISTRY_TOKEN'), string(credentialsId: 'github-username', variable: 'REGISTRY_USER')]) {
-            sh "echo \$REGISTRY_TOKEN | docker login ghcr.io -u \$REGISTRY_USER --password-stdin"
+        withCredentials([usernamePassword(credentialsId: config.helmDockerConfigJsonCredentialsId, passwordVariable: 'REGISTRY_PASSWORD', usernameVariable: 'REGISTRY_USERNAME')]) {
+            sh "echo \$REGISTRY_PASSWORD | docker login ${config.registry} -u \$REGISTRY_USERNAME --password-stdin"
 
             // For each service, pull the 'latest' image, re-tag it with the production version, and push the new tag.
             config.services.each { service ->
