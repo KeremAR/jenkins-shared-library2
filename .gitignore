@@ -2,6 +2,7 @@
 user-service/
 todo-service/
 helm-charts/
+kustomize/
 
 # Ignore docker compose files related to the example services
 docker-compose.yml
