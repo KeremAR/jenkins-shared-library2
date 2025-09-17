@@ -60,7 +60,7 @@ def call(Map config) {
             echo "🔧 Installing Kustomize & kubectl..."
             sh '''
                 apk add --no-cache curl bash
-                (cd /tmp && curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_`kustomize`.sh" | bash)
+                (cd /tmp && curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash)
                 mv /tmp/kustomize /usr/local/bin/
                 
                 curl -L "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" -o /tmp/kubectl
