@@ -11,11 +11,12 @@
  *               - username
  *               - appName
  *               - registryCredentialsId
+ *               - dockerConfigJsonCredentialsId (required)
  */
 def call(Map config) {
     // --- Configuration Validation ---
-    if (!config.services || !config.registryCredentialsId || !config.registry || !config.username || !config.appName) {
-        error("Missing required parameters: 'services', 'registryCredentialsId', 'registry', 'username', and 'appName' must be provided.")
+    if (!config.services || !config.registryCredentialsId || !config.registry || !config.username || !config.appName || !config.dockerConfigJsonCredentialsId) {
+        error("Missing required parameters: 'services', 'registryCredentialsId', 'registry', 'username', 'appName', and 'dockerConfigJsonCredentialsId' must be provided.")
     }
     if (!env.TAG_NAME) {
         error("This function should only be run on a Git tag. No TAG_NAME found.")
@@ -49,24 +50,42 @@ def call(Map config) {
         }
     }
 
-    // --- Update Kustomize Configuration ---
+    // --- Update Kustomize Configuration and Create Secret ---
     def overlayPath = 'kustomize/overlays/production'
-    container('docker') {
-        echo "🔧 Installing Kustomize..."
-        sh '''
-            apk add --no-cache curl bash
-            (cd /tmp && curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash)
-            mv /tmp/kustomize /usr/local/bin/
-        '''
+    def namespace = 'production'
+    def secretName = 'github-registry-secret'
 
-        dir(overlayPath) {
-            echo "Updating image tags in Kustomize overlay: ${overlayPath}"
-            config.services.each { service ->
-                def imageName = "${config.registry}/${config.username}/${config.appName}-${service.name}"
-                def imageWithTag = "${imageName}:${productionImageTag}"
+    withCredentials([string(credentialsId: config.dockerConfigJsonCredentialsId, variable: 'DOCKER_CONFIG_JSON_B64')]) {
+        container('docker') {
+            echo "🔧 Installing Kustomize & kubectl..."
+            sh '''
+                apk add --no-cache curl bash
+                (cd /tmp && curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_`kustomize`.sh" | bash)
+                mv /tmp/kustomize /usr/local/bin/
                 
-                echo "Setting image for ${service.name} to ${imageWithTag}"
-                sh "kustomize edit set image ${imageName}=${imageWithTag}"
+                curl -L "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" -o /tmp/kubectl
+                chmod +x /tmp/kubectl
+                mv /tmp/kubectl /usr/local/bin/
+            '''
+
+            echo "🔐 Creating/updating image pull secret '${secretName}' in namespace '${namespace}'..."
+            sh """
+                kubectl delete secret ${secretName} --namespace ${namespace} --ignore-not-found
+                kubectl create secret generic ${secretName} \\
+                    --namespace ${namespace} \\
+                    --from-literal=.dockerconfigjson="\$(echo \$DOCKER_CONFIG_JSON_B64 | base64 -d)" \\
+                    --type=kubernetes.io/dockerconfigjson
+            """
+
+            dir(overlayPath) {
+                echo "Updating image tags in Kustomize overlay: ${overlayPath}"
+                config.services.each { service ->
+                    def imageName = "${config.registry}/${config.username}/${config.appName}-${service.name}"
+                    def imageWithTag = "${imageName}:${productionImageTag}"
+                    
+                    echo "Setting image for ${service.name} to ${imageWithTag}"
+                    sh "kustomize edit set image ${imageName}=${imageWithTag}"
+                }
             }
         }
     }

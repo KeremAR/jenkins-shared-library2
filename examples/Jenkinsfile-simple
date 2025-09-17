@@ -235,7 +235,8 @@ pipeline {
                         services: config.services,
                         registry: config.registry,
                         username: config.username,
-                        appName: config.appName
+                        appName: config.appName,
+                        dockerConfigJsonCredentialsId: config.helmDockerConfigJsonCredentialsId
                     )
                 }
             }
@@ -282,7 +283,8 @@ pipeline {
                         services: config.services,
                         registry: config.registry,
                         username: config.username,
-                        appName: config.appName
+                        appName: config.appName,
+                        dockerConfigJsonCredentialsId: config.helmDockerConfigJsonCredentialsId
                     )
                 }
             }
