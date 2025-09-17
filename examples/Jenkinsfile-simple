@@ -251,8 +251,14 @@ pipeline {
             }
             steps {
                 script {
+                    /*
                     cleanupHelmRelease(
                         releaseName: "${config.helmReleaseName}-staging",
+                        namespace: 'staging'
+                    )
+                    */
+                    cleanupKustomizeRelease(
+                        overlayPath: 'kustomize/overlays/staging',
                         namespace: 'staging'
                     )
                 }
