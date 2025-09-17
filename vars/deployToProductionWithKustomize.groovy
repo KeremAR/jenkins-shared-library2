@@ -68,6 +68,9 @@ def call(Map config) {
                 mv /tmp/kubectl /usr/local/bin/
             '''
 
+            echo "Ensuring namespace '${namespace}' exists..."
+            sh "kubectl create namespace ${namespace} --dry-run=client -o yaml | kubectl apply -f -"
+
             echo "🔐 Creating/updating image pull secret '${secretName}' in namespace '${namespace}'..."
             sh """
                 kubectl delete secret ${secretName} --namespace ${namespace} --ignore-not-found
