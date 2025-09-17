@@ -18,9 +18,9 @@ def call(Map config) {
         echo "🔧 Installing kubectl..."
         sh '''
             apk add --no-cache curl
-            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-            chmod +x kubectl
-            mv kubectl /usr/local/bin/
+            curl -L "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" -o /tmp/kubectl
+            chmod +x /tmp/kubectl
+            mv /tmp/kubectl /usr/local/bin/
         '''
 
         echo "🚀 Deploying with Kustomize from path: ${overlayPath}..."

@@ -55,8 +55,8 @@ def call(Map config) {
         echo "🔧 Installing Kustomize..."
         sh '''
             apk add --no-cache curl bash
-            curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
-            mv kustomize /usr/local/bin/
+            (cd /tmp && curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash)
+            mv /tmp/kustomize /usr/local/bin/
         '''
 
         dir(overlayPath) {
