@@ -18,11 +18,14 @@ def call(Map config) {
         string(credentialsId: userCredentialId, variable: 'ARGOCD_USERNAME'),
         string(credentialsId: passCredentialId, variable: 'ARGOCD_PASSWORD')
     ]) {
-        withEnv(["ARGOCD_SERVER=${env.ARGOCD_SERVER}"]) {
+        withEnv([
+            "ARGOCD_SERVER=${env.ARGOCD_SERVER}",
+            "ARGO_APP_NAME=${config.argoCdStagingAppName}"
+        ]) {
             sh '''
                 ./argocd login $ARGOCD_SERVER --username $ARGOCD_USERNAME --password $ARGOCD_PASSWORD --insecure --grpc-web --core
-                ./argocd app sync ${config.argoCdStagingAppName} --refresh
-                ./argocd app wait ${config.argoCdStagingAppName} --health --timeout 300
+                ./argocd app sync $ARGO_APP_NAME --refresh
+                ./argocd app wait $ARGO_APP_NAME --health --timeout 300
             '''
         }
     }
