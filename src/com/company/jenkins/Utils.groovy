@@ -29,6 +29,12 @@ class Utils implements Serializable {
                 volumeMounts:
                 - name: docker-cache
                   mountPath: /var/lib/docker
+              - name: argocd
+                image: argoproj/argocd:v2.12.0 # Using a stable version of the official ArgoCD image
+                command:
+                - sleep
+                args:
+                - 99d
         '''
     }
     
