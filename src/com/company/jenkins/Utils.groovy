@@ -30,7 +30,7 @@ class Utils implements Serializable {
                 - name: docker-cache
                   mountPath: /var/lib/docker
               - name: argocd
-                image: argoproj/argocd:v3.1.5 
+                image: argoproj/argocd:v3.6.11
                 command:
                 - sleep
                 args:
