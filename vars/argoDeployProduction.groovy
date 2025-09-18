@@ -13,7 +13,7 @@ def call(Map config) {
     withCredentials([string(credentialsId: config.argoCdCredentialId, variable: 'ARGOCD_AUTH_TOKEN')]) {
         withEnv(["ARGOCD_SERVER=${env.ARGOCD_SERVER}"]) {
             sh '''
-                ./argocd login $ARGOCD_SERVER --auth-token=$ARGOCD_AUTH_TOKEN --insecure
+                ./argocd login $ARGOCD_SERVER --auth-token=$ARGOCD_AUTH_TOKEN --insecure --grpc-web
                 ./argocd app set ${config.argoCdProdAppName} --revision ${env.TAG_NAME}
                 ./argocd app sync ${config.argoCdProdAppName}
                 ./argocd app wait ${config.argoCdProdAppName} --health --timeout 600
