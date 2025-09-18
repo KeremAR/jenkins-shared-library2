@@ -260,6 +260,9 @@ pipeline {
             }
             steps {
                 script {
+
+                  echo "----------------------SKIPPING FOR NOW----------------------"
+
                     /*
                     cleanupHelmRelease(
                         releaseName: "${config.helmReleaseName}-staging",
@@ -273,6 +276,7 @@ pipeline {
                     // )
 
             }
+        }
         }
 
         // --- AŞAMA 3: PRODUCTION'A YÜKSELTME (PROMOTION) ---
@@ -308,9 +312,11 @@ pipeline {
                     // )
 
                    argoDeployProduction(config)
+                }
             }
         }
     }
+    
 
     post {
         always {
