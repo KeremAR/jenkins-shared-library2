@@ -6,7 +6,7 @@ def call() {
     sh '''
         if [ ! -f ./argocd ]; then
             echo "ArgoCD CLI not found in workspace. Downloading..."
-            curl -SL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+            curl -SL -o ./argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
             chmod +x ./argocd
             echo "ArgoCD CLI downloaded successfully."
         else
