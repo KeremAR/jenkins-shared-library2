@@ -32,9 +32,8 @@ class Utils implements Serializable {
               - name: argocd
                 image: argoproj/argocli:v3.6.11
                 command:
-                - sleep
-                args:
-                - 99d
+                - cat
+                ttyEnabled: true
         '''
     }
     
