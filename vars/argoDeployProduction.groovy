@@ -11,9 +11,13 @@ def call(Map config) {
     ensureArgoCD()
     echo "🚀 Triggering ArgoCD sync for production from tag ${env.TAG_NAME}..."
     withCredentials([string(credentialsId: config.argoCdCredentialId, variable: 'ARGOCD_AUTH_TOKEN')]) {
-        sh "./argocd login ${env.ARGOCD_SERVER} --auth-token=${ARGOCD_AUTH_TOKEN} --insecure"
-        sh "./argocd app set ${config.argoCdProdAppName} --revision ${env.TAG_NAME}"
-        sh "./argocd app sync ${config.argoCdProdAppName}"
-        sh "./argocd app wait ${config.argoCdProdAppName} --health --timeout 600"
+        withEnv(["ARGOCD_SERVER=${env.ARGOCD_SERVER}"]) {
+            sh '''
+                ./argocd login $ARGOCD_SERVER --auth-token=$ARGOCD_AUTH_TOKEN --insecure
+                ./argocd app set ${config.argoCdProdAppName} --revision ${env.TAG_NAME}
+                ./argocd app sync ${config.argoCdProdAppName}
+                ./argocd app wait ${config.argoCdProdAppName} --health --timeout 600
+            '''
+        }
     }
 }
