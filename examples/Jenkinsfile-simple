@@ -30,7 +30,8 @@ def config = [
     helmDockerConfigJsonCredentialsId: 'github-registry-dockerconfig', // Jenkins credential ID for the docker config json
 
     // ArgoCD Configuration
-    argoCdCredentialId: 'argocd-auth-token',
+    argoCdUserCredentialId: 'argocd-username',
+    argoCdPassCredentialId: 'argocd-password',
     argoCdStagingAppName: 'staging-todo-app',
     argoCdProdAppName: 'production-todo-app',
 
