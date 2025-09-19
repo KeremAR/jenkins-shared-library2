@@ -23,8 +23,8 @@ def call(Map config) {
             "ARGO_APP_NAME=${config.argoCdStagingAppName}"
         ]) {
             sh '''
-                ./argocd login $ARGOCD_SERVER --username $ARGOCD_USERNAME --password $ARGOCD_PASSWORD --insecure --grpc-web --core
-                ./argocd app sync $ARGO_APP_NAME --refresh
+                ./argocd login $ARGOCD_SERVER --username $ARGOCD_USERNAME --password $ARGOCD_PASSWORD --insecure --grpc-web 
+                ./argocd app sync $ARGO_APP_NAME 
                 ./argocd app wait $ARGO_APP_NAME --health --timeout 300
             '''
         }

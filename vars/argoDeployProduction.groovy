@@ -25,7 +25,7 @@ def call(Map config) {
             "GIT_TAG_NAME=${env.TAG_NAME}"
         ]) {
             sh '''
-                ./argocd login $ARGOCD_SERVER --username $ARGOCD_USERNAME --password $ARGOCD_PASSWORD --insecure --grpc-web --core
+                ./argocd login $ARGOCD_SERVER --username $ARGOCD_USERNAME --password $ARGOCD_PASSWORD --insecure --grpc-web
                 ./argocd app set $ARGO_APP_NAME --revision $GIT_TAG_NAME
                 ./argocd app sync $ARGO_APP_NAME
                 ./argocd app wait $ARGO_APP_NAME --health --timeout 600
