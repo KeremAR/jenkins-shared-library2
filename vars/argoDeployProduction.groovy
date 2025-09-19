@@ -29,7 +29,7 @@ def call(Map config) {
         ]) {
             sh '''
                 echo "Cloning manifest repository to update it..."
-                git clone "https://${GIT_USERNAME}:${GIT_PASSWORD}@${repoUrl}" temp_gitops_repo
+                git clone "https://${GIT_USERNAME}:${GIT_PASSWORD}@${repoUrl}.git" temp_gitops_repo
                 cd temp_gitops_repo
 
                 echo "Updating manifest file..."
