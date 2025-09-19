@@ -14,13 +14,13 @@ def call(Map config) {
     
     def userCredentialId = config.argoCdUserCredentialId ?: 'argocd-username'
     def passCredentialId = config.argoCdPassCredentialId ?: 'argocd-password'
-    def gitPushCredentialId = config.gitPushCredentialId ?: 'github-pat-for-jenkins' // Git'e push yapmak için credential
-    def repoUrl = config.repoUrl ?: 'github.com/KeremAR/local-devops-infrastructure.git' // HTTPS repo URL'si
+    def gitPushCredentialId = config.gitPushCredentialId ?: 'github-webhook' // Git'e push yapmak için credential
+    def repoUrl = config.repoUrl ?: 'github.com/KeremAR/todo-app-gitops' // HTTPS repo URL'si
 
     withCredentials([
         string(credentialsId: userCredentialId, variable: 'ARGOCD_USERNAME'),
         string(credentialsId: passCredentialId, variable: 'ARGOCD_PASSWORD'),
-        string(credentialsId: gitPushCredentialId, variable: 'GIT_PAT')
+        usernamePassword(credentialsId: gitPushCredentialId, usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')
     ]) {
         withEnv([
             "ARGOCD_SERVER=${env.ARGOCD_SERVER}",
@@ -33,11 +33,11 @@ def call(Map config) {
                 sed -i "s|targetRevision: '.*'|targetRevision: '${GIT_TAG_NAME}'|" argocd-manifests/environments/production.yaml
 
                 echo "Pushing manifest changes to Git..."
-                git config --global user.email "jenkins@todo-app.com"
+                git config --global user.email "jenkins@local-devops-infrastructure.com"
                 git config --global user.name "Jenkins CI"
                 git add argocd-manifests/environments/production.yaml
                 git commit -m "ci: Update production targetRevision to ${GIT_TAG_NAME}"
-                git push "https://${GIT_PAT}@${repoUrl}" HEAD:main
+                git push "https://${GIT_USERNAME}:${GIT_PASSWORD}@${repoUrl}" HEAD:main
 
                 echo "Syncing ArgoCD application..."
                 ./argocd login $ARGOCD_SERVER --username $ARGOCD_USERNAME --password $ARGOCD_PASSWORD --insecure --grpc-web
