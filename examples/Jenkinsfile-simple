@@ -34,6 +34,8 @@ def config = [
     argoCdPassCredentialId: 'argocd-password',
     argoCdStagingAppName: 'staging-todo-app',
     argoCdProdAppName: 'production-todo-app',
+    gitPushCredentialId: 'github-webhook', // Git'e push yapmak için credential
+    repoUrl: 'github.com/KeremAR/todo-app-gitops', // HTTPS repo URL'si
 
     dockerfilesToHadolint: [
         'user-service/Dockerfile',
