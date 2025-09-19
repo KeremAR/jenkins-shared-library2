@@ -28,6 +28,10 @@ def call(Map config) {
             "GIT_TAG_NAME=${env.TAG_NAME}"
         ]) {
             sh '''
+                echo "Cloning manifest repository to update it..."
+                git clone "https://${GIT_USERNAME}:${GIT_PASSWORD}@${repoUrl}" temp_gitops_repo
+                cd temp_gitops_repo
+
                 echo "Updating manifest file..."
                 # 'g' flag'i olmadan sed kullanarak sadece ilk bulduğunu değiştir
                 sed -i "s|targetRevision: '.*'|targetRevision: '${GIT_TAG_NAME}'|" argocd-manifests/environments/production.yaml
@@ -37,7 +41,10 @@ def call(Map config) {
                 git config --global user.name "Jenkins CI"
                 git add argocd-manifests/environments/production.yaml
                 git commit -m "ci: Update production targetRevision to ${GIT_TAG_NAME}"
-                git push "https://${GIT_USERNAME}:${GIT_PASSWORD}@${repoUrl}" HEAD:main
+                git push origin HEAD:main
+
+                # ArgoCD komutlarını çalıştırmak için ana çalışma dizinine geri dön
+                cd ..
 
                 echo "Syncing ArgoCD application..."
                 ./argocd login $ARGOCD_SERVER --username $ARGOCD_USERNAME --password $ARGOCD_PASSWORD --insecure --grpc-web
