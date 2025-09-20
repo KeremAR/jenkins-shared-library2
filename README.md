@@ -1,7 +1,3 @@
-# WARP.md
-
-This file provides guidance to WARP (warp.dev) when working with code in this repository.
-
 ## Repository Overview
 
 This is a Jenkins Shared Library for Todo App CI/CD pipelines, written in Groovy. The library provides reusable functions for building, testing, security scanning, and deploying containerized applications to Kubernetes using multiple deployment strategies (Helm, Kustomize, ArgoCD).
