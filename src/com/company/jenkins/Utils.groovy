@@ -26,16 +26,17 @@ class Utils implements Serializable {
                 image: docker:20.10.16-dind
                 securityContext:
                   privileged: true
+                resources:
+                  requests:
+                    memory: "1Gi"
+                    cpu: "500m"
+                  limits:
+                    memory: "2Gi"
+                    cpu: "2000m"                  
                 volumeMounts:
                 - name: docker-cache
                   mountPath: /var/lib/docker
-                resources:
-                  requests:
-                    memory: "1Gi" 
-                    cpu: "500m"
-                  limits:
-                    memory: "2Gi" 
-                    cpu: "1"
+   
         '''
     }
     
