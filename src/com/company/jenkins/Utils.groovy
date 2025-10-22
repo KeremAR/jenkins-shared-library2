@@ -11,6 +11,11 @@ class Utils implements Serializable {
                 jenkins: slave
             spec:
               serviceAccountName: jenkins
+              dnsPolicy: "None"
+              dnsConfig:
+                nameservers:
+                  - "8.8.8.8"
+                  - "1.1.1.1"  
               volumes:
               - name: docker-cache
                 persistentVolumeClaim:
