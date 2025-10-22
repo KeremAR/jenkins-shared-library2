@@ -29,6 +29,13 @@ class Utils implements Serializable {
                 volumeMounts:
                 - name: docker-cache
                   mountPath: /var/lib/docker
+                resources:
+                  requests:
+                    memory: "1Gi" 
+                    cpu: "500m"
+                  limits:
+                    memory: "2Gi" 
+                    cpu: "1"
         '''
     }
     
