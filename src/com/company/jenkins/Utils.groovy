@@ -33,6 +33,18 @@ class Utils implements Serializable {
                 volumeMounts:
                 - name: docker-cache
                   mountPath: /var/lib/docker
+              - name: argo
+                image: "ghcr.io/keremar/jenkins-argo-agent:latest"
+                command: ["sleep"]
+                args: ["infinity"]
+                tty: true
+                resources:
+                  requests:
+                    memory: "128Mi"
+                    cpu: "100m"
+                  limits:
+                    memory: "512Mi"
+                    cpu: "500m"
    
         '''
     }
