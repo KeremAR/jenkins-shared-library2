@@ -38,9 +38,9 @@ def call(Map config) {
                     rm -rf temp_gitops_repo
                     
                     echo "Syncing ArgoCD application..."
-                    ./argocd login \$ARGOCD_SERVER --username \$ARGOCD_USERNAME --password \$ARGOCD_PASSWORD --insecure --grpc-web
-                    ./argocd app sync \$ARGO_APP_NAME
-                    ./argocd app wait \$ARGO_APP_NAME --health --timeout 600
+                    argocd login \$ARGOCD_SERVER --username \$ARGOCD_USERNAME --password \$ARGOCD_PASSWORD --insecure --grpc-web
+                    argocd app sync \$ARGO_APP_NAME
+                    argocd app wait \$ARGO_APP_NAME --health --timeout 600
                 """
             }
         }
