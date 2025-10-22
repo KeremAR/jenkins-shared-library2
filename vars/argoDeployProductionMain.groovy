@@ -31,8 +31,13 @@ def call(Map config) {
                     git config --global user.email "jenkins@local-devops-infrastructure.com"
                     git config --global user.name "Jenkins CI"
                     git add argocd-manifests/environments/production.yaml
-                    git commit -m "ci: Update production targetRevision to ${GIT_REVISION}"
-                    git push origin HEAD:main
+                    if ! git diff-index --quiet HEAD; then
+                        echo "Changes found, committing and pushing..."
+                        git commit -m "ci: Update production targetRevision to ${GIT_REVISION}"
+                        git push origin HEAD:main
+                    else
+                        echo "No changes in targetRevision. Git repository is already up to date."
+                    fi
 
                     cd ..
                     rm -rf temp_gitops_repo
