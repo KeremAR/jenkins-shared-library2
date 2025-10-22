@@ -1,5 +1,5 @@
 def call(Map config) {
-    echo "🚀 Triggering ArgoCD sync for production from tag ${env.TAG_NAME}..."
+    echo "🚀 Triggering ArgoCD sync for production from commit to main branch ${env.GIT_COMMIT}..."
     
     def userCredentialId = config.argoCdUserCredentialId ?: 'argocd-username'
     def passCredentialId = config.argoCdPassCredentialId ?: 'argocd-password'
@@ -25,7 +25,7 @@ def call(Map config) {
                     cd temp_gitops_repo
 
                     echo "Updating manifest file..."
-                    sed -i "s|targetRevision: '.*'|targetRevision: '${GIT_REVISION}'|" argocd-manifests/environments/production.yaml
+                    sed -i "s|targetRevision: '.*'|targetRevision: ${GIT_REVISION} |" argocd-manifests/environments/production.yaml
 
                     echo "Pushing manifest changes to Git..."
                     git config --global user.email "jenkins@local-devops-infrastructure.com"
