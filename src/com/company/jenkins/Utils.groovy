@@ -11,6 +11,8 @@ class Utils implements Serializable {
                 jenkins: slave
             spec:
               serviceAccountName: jenkins
+              imagePullSecrets:
+                - name: ghcr-creds
               dnsConfig:
                 options:
                   - name: ndots
