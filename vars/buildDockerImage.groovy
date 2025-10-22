@@ -15,7 +15,7 @@ def call(Map config) {
     container('docker') {
         script {
             echo "🔨 Building ${serviceName} Docker image..."
-            sh "docker build -t ${imageName} -f ${dockerfilePath} ${contextPath}"
+            sh "docker build --no-cache -t ${imageName} -f ${dockerfilePath} ${contextPath}"
             sh "docker tag ${imageName} ${latestImageName}"
             echo "✅ Successfully built ${serviceName} image: ${imageName}"
             
