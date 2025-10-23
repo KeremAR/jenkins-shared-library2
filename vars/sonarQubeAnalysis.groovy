@@ -29,12 +29,15 @@ def call(Map config) {
             sonar.sources=.
             sonar.exclusions=**/node_modules/**,**/test/**
         """
-        
+
         echo "🔎 Preparing SonarQube analysis environment and waiting for Quality Gate..."
         // Timeout the whole analysis and wait step after 15 minutes
         timeout(time: 15, unit: 'MINUTES') {
             withSonarQubeEnv(serverName ?: 'sonarqube') {
                 def scannerHome = tool scannerName
+                echo "Scanner home path: ${scannerHome}"
+                sh "ls -la ${scannerHome} || true"
+                sh "ls -la ${scannerHome}/bin || true"
                 sh "${scannerHome}/bin/sonar-scanner"
             }
 
