@@ -4,6 +4,8 @@ def call(Map config) {
     def userCredentialId = config.argoCdUserCredentialId ?: 'argocd-username'
     def passCredentialId = config.argoCdPassCredentialId ?: 'argocd-password'
     def gitPushCredentialId = config.gitPushCredentialId ?: 'github-webhook'
+    def ARGO_APP_NAME = config.argoCdProdAppName
+
     def repoUrl = config.repoUrl 
 
     container('argo') {
@@ -14,7 +16,7 @@ def call(Map config) {
         ]) {
             withEnv([
                 "ARGOCD_SERVER=${env.ARGOCD_SERVER}",
-                "ARGO_APP_NAME=${config.argoCdProdAppName}",
+                // "ARGO_APP_NAME=${config.argoCdProdAppName}",
                 "GIT_REVISION=${env.GIT_COMMIT}"
             ]) {
                 // DEĞİŞİKLİK BURADA: Tek tırnak yerine çift tırnak kullanılıyor.
