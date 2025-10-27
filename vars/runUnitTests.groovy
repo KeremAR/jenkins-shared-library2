@@ -29,13 +29,19 @@ def call(Map config) {
                         """
 
                         echo "Running tests for ${serviceName} and generating coverage report..."
-                        sh """
-                            docker run --rm \\
-                                --user \$(id -u):\$(id -g) \\
-                                -v ${env.WORKSPACE}/coverage-reports:/app/coverage-reports \\
-                                ${serviceName}-test-runner \\
-                                pytest -p no:cacheprovider --cov=. --cov-report=xml:/app/coverage-reports/coverage-${serviceName}.xml
-                        """
+                        def containerName = "test-runner-${serviceName}-${env.BUILD_NUMBER}"
+                        try {
+                            sh """
+                                docker run --name ${containerName} \\
+                                    ${serviceName}-test-runner \\
+                                    pytest -p no:cacheprovider --cov=. --cov-report=xml:coverage.xml
+                            """
+                        } finally {
+                            echo "Copying coverage report from container..."
+                            sh "docker cp ${containerName}:/app/coverage.xml ${env.WORKSPACE}/coverage-reports/coverage-${serviceName}.xml"
+                            sh "docker rm ${containerName}"
+                        }
+
 
                         echo "Fixing coverage report paths for ${serviceName}..."
                         sh "sed -i 's|filename=\"|filename=\"${serviceName}/|g' ${env.WORKSPACE}/coverage-reports/coverage-${serviceName}.xml"
