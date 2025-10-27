@@ -1,17 +1,18 @@
 def call(Map config) {
     echo "🚀 Deploying to production from main branch..."
     
-    // STEP 1: Update Helm values with new image tags
-    echo "📝 Step 1: Updating Helm image tags in values-prod.yaml..."
-    updateHelmImageTags([
+    // STEP 1: Update GitOps manifest with new image tags
+    echo "📝 Step 1: Updating GitOps manifest (gitops-epam)..."
+    updateGitOpsManifest([
         imageTag: env.IMAGE_TAG,
-        helmValuesFile: config.helmValuesProdFile ?: 'helm-charts/todo-app/values-prod.yaml',
-        services: config.services,
+        environment: 'production',
+        gitOpsRepo: config.gitOpsRepo,
         gitPushCredentialId: config.gitPushCredentialId
     ])
     
-    // Wait a moment for GitHub to process the commit
-    sleep(time: 5, unit: 'SECONDS')
+    // Wait a moment for GitHub to process the commit and ArgoCD to detect change
+    echo "⏳ Waiting for ArgoCD to detect changes..."
+    sleep(time: 10, unit: 'SECONDS')
     
     // STEP 2: Sync ArgoCD
     echo "🔄 Step 2: Syncing ArgoCD application..."
