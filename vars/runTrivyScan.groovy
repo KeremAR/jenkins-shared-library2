@@ -41,7 +41,6 @@ def call(Map config) {
         // --- 1. Pre-download/update the DB to the persistent location ---
         echo "🔄 Updating Trivy vulnerability database in persistent cache..."
         try {
-            // The mount point is created by K8s, but let's ensure the trivy subdirectories are there.
             sh "mkdir -p ${persistentCacheDir}/db && mkdir -p ${persistentCacheDir}/java-db"
             
             sh """
@@ -55,18 +54,23 @@ def call(Map config) {
             echo "⚠️ Could not update Trivy DB. Scans will proceed but may use an older DB if one exists."
         }
 
-        // --- 2. Run scans in parallel using the persistent DB ---
+        // --- 2. Run scans in parallel using isolated copies of the persistent DB ---
         echo "🛡️ Running Trivy vulnerability scan for images in parallel..."
         def parallelScans = [:]
         imagesToScan.each { imageName ->
             parallelScans["Scan ${imageName}"] = {
                 stage("Scan ${imageName}") {
+                    def isolatedCacheDir = "${env.WORKSPACE}/.trivy-cache-isolated-${UUID.randomUUID()}"
                     try {
+                        echo "--- Preparing isolated cache for ${imageName} ---"
+                        sh "mkdir -p ${isolatedCacheDir}"
+                        sh "cp -R ${persistentCacheDir}/* ${isolatedCacheDir}/"
+
                         echo "--- Scanning ${imageName} for ${severities} vulnerabilities ---"
                         sh """
                             docker run --rm \\
                                 -v /var/run/docker.sock:/var/run/docker.sock \\
-                                -v ${persistentCacheDir}:/root/.cache/trivy \\
+                                -v ${isolatedCacheDir}:/root/.cache/trivy \\
                                 aquasec/trivy:latest \\
                                 image \\
                                 --skip-db-update \\
@@ -81,6 +85,9 @@ def call(Map config) {
                     } catch (e) {
                         echo "❌ Trivy scan failed for ${imageName} or vulnerabilities were found!"
                         throw e
+                    } finally {
+                        echo "--- Cleaning up isolated cache for ${imageName} ---"
+                        sh "rm -rf ${isolatedCacheDir}"
                     }
                 }
             }
