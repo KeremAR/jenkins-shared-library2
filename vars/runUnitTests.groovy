@@ -40,8 +40,10 @@ def call(Map config) {
                             echo "Copying coverage report from container..."
                             sh "docker cp ${containerName}:/app/coverage.xml ${env.WORKSPACE}/coverage-reports/coverage-${serviceName}.xml"
                             sh "docker rm ${containerName}"
+                            
+                            // Fix file permissions (docker cp creates files as root)
+                            sh "chmod 666 ${env.WORKSPACE}/coverage-reports/coverage-${serviceName}.xml"
                         }
-
 
                         echo "Fixing coverage report paths for ${serviceName}..."
                         sh "sed -i 's|filename=\"|filename=\"${serviceName}/|g' ${env.WORKSPACE}/coverage-reports/coverage-${serviceName}.xml"
