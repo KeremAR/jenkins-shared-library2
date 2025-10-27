@@ -38,11 +38,13 @@ def call(Map config) {
             
             if ! git diff-index --quiet HEAD; then
                 echo "Committing image tag updates..."
-                git commit -m "ci: Update image tags to build ${imageTag}"
+                git commit -m "ci: Update image tags to build ${imageTag} [skip ci]"
                 
                 # Push to target branch (Jenkins uses detached HEAD, so we push directly to branch)
                 echo "Pushing to branch: \${TARGET_BRANCH}"
                 git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/KeremAR/proxmox-k3s.git HEAD:refs/heads/\${TARGET_BRANCH}
+                
+                echo "✅ Image tags updated and pushed (CI skip enabled)"
             else
                 echo "No changes to commit"
             fi
