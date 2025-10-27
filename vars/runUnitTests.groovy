@@ -31,9 +31,10 @@ def call(Map config) {
                         echo "Running tests for ${serviceName} and generating coverage report..."
                         sh """
                             docker run --rm \\
+                                --user \$(id -u):\$(id -g) \\
                                 -v ${env.WORKSPACE}/coverage-reports:/app/coverage-reports \\
                                 ${serviceName}-test-runner \\
-                                pytest --cov=. --cov-report=xml:/app/coverage-reports/coverage-${serviceName}.xml
+                                pytest -p no:cacheprovider --cov=. --cov-report=xml:/app/coverage-reports/coverage-${serviceName}.xml
                         """
 
                         echo "Fixing coverage report paths for ${serviceName}..."
