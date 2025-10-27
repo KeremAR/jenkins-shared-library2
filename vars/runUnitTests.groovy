@@ -59,6 +59,11 @@ def call(Map config) {
         
         parallel parallelTests
         
+        // Fix directory permissions after all docker cp operations
+        // (docker cp sets directory ownership to root, causing deleteDir to fail)
+        echo "Fixing coverage-reports directory permissions..."
+        sh "chmod -R 777 coverage-reports"
+        
         echo "🎉 All unit tests completed!"
     }
 }
