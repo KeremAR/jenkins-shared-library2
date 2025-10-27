@@ -27,7 +27,7 @@ def call(Map config) {
         writeFile file: 'sonar-project.properties', text: """
             sonar.projectKey=${projectKey}
             sonar.sources=.
-            sonar.exclusions=**/node_modules/**,**/test/**
+            sonar.exclusions=**/node_modules/**,**/test/**,**/test_*.py
             sonar.python.coverage.reportPaths=coverage-reports/coverage-*.xml
 
         """
