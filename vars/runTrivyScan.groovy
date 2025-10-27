@@ -71,6 +71,7 @@ def call(Map config) {
                             docker run --rm \\
                                 -v /var/run/docker.sock:/var/run/docker.sock \\
                                 -v ${isolatedCacheDir}:/root/.cache/trivy \\
+                                -v ${env.WORKSPACE}/.trivyignore:/.trivyignore \\
                                 aquasec/trivy:latest \\
                                 image \\
                                 --skip-db-update \\
