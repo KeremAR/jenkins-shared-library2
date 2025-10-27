@@ -21,6 +21,9 @@ class Utils implements Serializable {
               - name: docker-cache
                 persistentVolumeClaim:
                   claimName: jenkins-docker-cache-pvc
+              - name: trivy-cache
+                persistentVolumeClaim:
+                  claimName: jenkins-trivy-cache-pvc
               containers:
               - name: jnlp
                 image: jenkins/inbound-agent:latest
@@ -28,6 +31,8 @@ class Utils implements Serializable {
                 volumeMounts:
                 - name: docker-cache
                   mountPath: /home/jenkins/.docker
+                - name: trivy-cache
+                  mountPath: /home/jenkins/.trivy-cache
               - name: docker
                 image: docker:20.10.16-dind
                 securityContext:
