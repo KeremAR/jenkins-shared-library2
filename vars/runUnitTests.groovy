@@ -4,8 +4,11 @@ def call(Map config) {
     def services = config.services
 
     container('docker') {
-        echo "🧪 Running unit tests for backend services in parallel..."
+        echo "🧪 Running unit tests and generating coverage reports for backend services in parallel..."
         
+        // Ensure the coverage reports directory exists and is clean
+        sh "mkdir -p coverage-reports && rm -f coverage-reports/*.xml"
+
         def parallelTests = [:]
         
         services.each { service ->
@@ -14,20 +17,29 @@ def call(Map config) {
             def contextPath = service.context ?: "."
 
             parallelTests["Test ${serviceName}"] = {
-                try {
-                    echo "Testing ${serviceName}..."
-                    // Build the 'test' stage from the Dockerfile and run it
-                    sh """
-                        docker build \\
-                            --target test \\
-                            -t ${serviceName}-test-runner \\
-                            -f ${dockerfilePath} \\
-                            ${contextPath}
-                    """
-                    echo "✅ ${serviceName} unit tests passed!"
-                } catch (e) {
-                    echo "❌ ${serviceName} unit tests failed!"
-                    throw e
+                stage("Test ${serviceName}") {
+                    try {
+                        echo "Building test image for ${serviceName}..."
+                        sh """
+                            docker build \\
+                                --target test \\
+                                -t ${serviceName}-test-runner \\
+                                -f ${dockerfilePath} \\
+                                ${contextPath}
+                        """
+
+                        echo "Running tests for ${serviceName} and generating coverage report..."
+                        sh """
+                            docker run --rm \\
+                                -v ${env.WORKSPACE}/coverage-reports:/app/coverage-reports \\
+                                ${serviceName}-test-runner \\
+                                pytest --cov=. --cov-report=xml:/app/coverage-reports/coverage-${serviceName}.xml
+                        """
+                        echo "✅ ${serviceName} unit tests passed!"
+                    } catch (e) {
+                        echo "❌ ${serviceName} unit tests failed!"
+                        throw e
+                    }
                 }
             }
         }

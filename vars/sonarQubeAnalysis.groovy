@@ -28,6 +28,8 @@ def call(Map config) {
             sonar.projectKey=${projectKey}
             sonar.sources=.
             sonar.exclusions=**/node_modules/**,**/test/**
+            sonar.python.coverage.reportPaths=coverage-reports/coverage-*.xml
+
         """
 
         echo "🔎 Preparing SonarQube analysis environment and waiting for Quality Gate..."
