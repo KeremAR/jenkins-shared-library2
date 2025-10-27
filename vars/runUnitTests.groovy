@@ -35,6 +35,10 @@ def call(Map config) {
                                 ${serviceName}-test-runner \\
                                 pytest --cov=. --cov-report=xml:/app/coverage-reports/coverage-${serviceName}.xml
                         """
+
+                        echo "Fixing coverage report paths for ${serviceName}..."
+                        sh "sed -i 's|filename=\"|filename=\"${serviceName}/|g' ${env.WORKSPACE}/coverage-reports/coverage-${serviceName}.xml"
+
                         echo "✅ ${serviceName} unit tests passed!"
                     } catch (e) {
                         echo "❌ ${serviceName} unit tests failed!"
