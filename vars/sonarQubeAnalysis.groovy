@@ -33,7 +33,7 @@ def call(Map config) {
             sonar.projectKey=${projectKey}
             sonar.sources=.
             sonar.exclusions=**/node_modules/**,**/test/**,**/test_*.py,docker-compose*.yml
-            sonar.python.coverage.reportPaths=coverage-reports/coverage-user.xml,coverage-reports/coverage-todo.xml
+            sonar.python.coverage.reportPaths=coverage-reports/coverage-user-service.xml,coverage-reports/coverage-todo-service.xml
         """
 
         echo "🔎 Preparing SonarQube analysis environment and waiting for Quality Gate..."
