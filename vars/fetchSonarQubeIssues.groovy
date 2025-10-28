@@ -56,9 +56,15 @@ def call(Map config = [:]) {
             
             echo "✅ Received response from SonarQube API (${issuesJson.length()} bytes)"
             
-            // Parse and display issues
+            // Save raw response to file
+            writeFile file: 'sonarqube-issues.json', text: issuesJson
+            archiveArtifacts artifacts: 'sonarqube-issues.json', allowEmptyArchive: true
+            echo "📄 Raw response saved to sonarqube-issues.json (archived as artifact)"
+            
+            // Parse and display issues using JsonSlurper
             echo "📊 Parsing JSON response..."
-            def issues = readJSON text: issuesJson
+            def jsonSlurper = new groovy.json.JsonSlurper()
+            def issues = jsonSlurper.parseText(issuesJson)
             echo "✅ JSON parsed successfully"
             
             if (issues.issues && issues.issues.size() > 0) {
@@ -77,11 +83,7 @@ Message: ${issue.message}
 ${'-' * 80}"""
                 }
                 
-                // Save issues to file
-                writeFile file: 'sonarqube-issues.txt', text: issuesJson
-                archiveArtifacts artifacts: 'sonarqube-issues.txt', allowEmptyArchive: true
-                echo "📄 Issues saved to sonarqube-issues.txt (archived as artifact)"
-                echo "💡 Download the artifact from Jenkins build page for full details"
+                echo "💡 Download sonarqube-issues.json artifact from Jenkins for full details"
             } else {
                 echo "✅ No open issues found!"
             }
