@@ -24,6 +24,7 @@ def call(Map config) {
     // Store SonarQube credentials for use in finally block
     def sonarUrl = ''
     def sonarToken = ''
+    def analysisError = null
 
     try {
         echo "📝 Creating sonar-project.properties file..."
@@ -59,7 +60,8 @@ def call(Map config) {
 
     } catch (e) {
         echo "❌ SonarQube analysis or Quality Gate failed!"
-        error("Error: ${e.toString()}")
+        analysisError = e
+        // Don't throw error yet, let finally block complete
     } finally {
         // Always fetch and display issues (whether pass or fail)
         if (sonarUrl && sonarToken) {
@@ -74,6 +76,11 @@ def call(Map config) {
         } else {
             echo "⚠️  SonarQube credentials not available, skipping issue fetch"
         }
+    }
+    
+    // Now throw error if analysis failed (after finally block completes)
+    if (analysisError) {
+        error("SonarQube Quality Gate failed: ${analysisError.toString()}")
     }
 }
 
