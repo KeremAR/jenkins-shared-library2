@@ -12,6 +12,8 @@
  *               - maxIssues (optional): Maximum number of issues to fetch (default: 100)
  */
 def call(Map config = [:]) {
+    echo "🔍 DEBUG: fetchSonarQubeIssues called with projectKey: ${config.projectKey}"
+    
     // --- Configuration Validation ---
     if (!config.projectKey) {
         echo "⚠️  projectKey not provided, skipping issue fetch"
@@ -31,24 +33,33 @@ def call(Map config = [:]) {
     def maxIssues = config.maxIssues ?: 100
 
     echo "📋 Fetching SonarQube issues..."
+    echo "🔍 DEBUG: About to enter argo container"
     
     container('argo') {
+        echo "🔍 DEBUG: Inside argo container"
         try {
             
             // Get issues from SonarQube API
+            echo "🔍 DEBUG: Running curl command..."
             def issuesJson = sh(
                 script: """curl -s -u ${sonarToken}: \
                     '${sonarUrl}/api/issues/search?componentKeys=${projectKey}&severities=${severities}&statuses=${statuses}&ps=${maxIssues}'""",
                 returnStdout: true
             ).trim()
             
+            echo "🔍 DEBUG: Curl completed, response length: ${issuesJson?.length() ?: 0}"
+            
             if (!issuesJson || issuesJson.isEmpty()) {
                 echo "⚠️  Empty response from SonarQube API"
                 return
             }
             
+            echo "✅ Received response from SonarQube API (${issuesJson.length()} bytes)"
+            
             // Parse and display issues
+            echo "📊 Parsing JSON response..."
             def issues = readJSON text: issuesJson
+            echo "✅ JSON parsed successfully"
             
             if (issues.issues && issues.issues.size() > 0) {
                 echo "⚠️  Found ${issues.total} open issues (showing ${issues.issues.size()}):"
