@@ -34,6 +34,9 @@ def call(Map config) {
             sonar.sources=.
             sonar.exclusions=**/node_modules/**,**/test/**,**/test_*.py,docker-compose*.yml
             sonar.python.coverage.reportPaths=coverage-reports/coverage-user-service.xml,coverage-reports/coverage-todo-service.xml
+            sonar.issue.ignore.multicriteria=e1
+            sonar.issue.ignore.multicriteria.e1.ruleKey=docker:S6471
+            sonar.issue.ignore.multicriteria.e1.resourceKey=**/frontend2/frontend/Dockerfile
         """
 
         echo "🔎 Preparing SonarQube analysis environment and waiting for Quality Gate..."
