@@ -20,6 +20,10 @@ def call(Map config) {
     def scannerName = config.scannerName
     def projectKey = config.projectKey
     def serverName = config.serverName
+    
+    // Store SonarQube credentials for use in finally block
+    def sonarUrl = ''
+    def sonarToken = ''
 
     try {
         echo "📝 Creating sonar-project.properties file..."
@@ -28,14 +32,17 @@ def call(Map config) {
             sonar.projectKey=${projectKey}
             sonar.sources=.
             sonar.exclusions=**/node_modules/**,**/test/**,**/test_*.py,docker-compose*.yml
-            sonar.python.coverage.reportPaths=coverage-reports/coverage-*.xml
-
+            sonar.python.coverage.reportPaths=coverage-reports/coverage-user.xml,coverage-reports/coverage-todo.xml
         """
 
         echo "🔎 Preparing SonarQube analysis environment and waiting for Quality Gate..."
         // Timeout the whole analysis and wait step after 15 minutes
         timeout(time: 15, unit: 'MINUTES') {
             withSonarQubeEnv(serverName ?: 'sonarqube') {
+                // Store credentials for later use in finally block
+                sonarUrl = env.SONAR_HOST_URL
+                sonarToken = env.SONAR_AUTH_TOKEN
+                
                 def scannerHome = tool scannerName
                 echo "Scanner home path: ${scannerHome}"
                 sh "ls -la ${scannerHome} || true"
@@ -53,6 +60,20 @@ def call(Map config) {
     } catch (e) {
         echo "❌ SonarQube analysis or Quality Gate failed!"
         error("Error: ${e.toString()}")
+    } finally {
+        // Always fetch and display issues (whether pass or fail)
+        if (sonarUrl && sonarToken) {
+            fetchSonarQubeIssues(
+                projectKey: projectKey,
+                sonarUrl: sonarUrl,
+                sonarToken: sonarToken,
+                severities: 'BLOCKER,CRITICAL,MAJOR',
+                statuses: 'OPEN,CONFIRMED',
+                maxIssues: 100
+            )
+        } else {
+            echo "⚠️  SonarQube credentials not available, skipping issue fetch"
+        }
     }
 }
 
