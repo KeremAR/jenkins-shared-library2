@@ -38,23 +38,7 @@ def call(Map config) {
     def persistentCacheDir = "/home/jenkins/.trivy-cache"
 
     container('docker') {
-        // --- 1. Pre-download/update the DB to the persistent location ---
-        echo "🔄 Updating Trivy vulnerability database in persistent cache..."
-        try {
-            sh "mkdir -p ${persistentCacheDir}/db && mkdir -p ${persistentCacheDir}/java-db"
-            
-            sh """
-                docker run --rm \\
-                    -v ${persistentCacheDir}:/root/.cache/trivy \\
-                    aquasec/trivy:latest \\
-                    image --download-db-only --quiet
-            """
-            echo "✅ Trivy database is up to date."
-        } catch(e) {
-            echo "⚠️ Could not update Trivy DB. Scans will proceed but may use an older DB if one exists."
-        }
-
-        // --- 2. Run scans in parallel using isolated copies of the persistent DB ---
+        // --- Run scans in parallel using isolated copies of the persistent DB ---
         echo "🛡️ Running Trivy vulnerability scan for images in parallel..."
         def parallelScans = [:]
         imagesToScan.each { imageName ->
