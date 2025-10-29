@@ -43,49 +43,50 @@ def call(Map config = [:]) {
             echo "⚠️ Could not update Trivy DB. Scans will proceed but may use an older DB if one exists."
         }
 
-        // --- 2. Run IaC scans in parallel for each target ---
-        echo "🔒 Running Trivy IaC (misconfiguration) scan on targets: ${targets.join(', ')}"
-        def parallelScans = [:]
-        targets.each { target ->
-            parallelScans["IaC Scan: ${target}"] = {
-                stage("IaC Scan: ${target}") {
-                    def isolatedCacheDir = "${env.WORKSPACE}/.trivy-cache-iac-${UUID.randomUUID()}"
-                    try {
-                        echo "--- Preparing isolated cache for ${target} ---"
-                        sh "mkdir -p ${isolatedCacheDir}"
-                        sh "cp -R ${persistentCacheDir}/* ${isolatedCacheDir}/"
-
-                        echo "--- Scanning ${target} for IaC misconfigurations (${severities}) ---"
-                        sh """
-                            docker run --rm \\
-                                -v ${env.WORKSPACE}:/src \\
-                                -v ${isolatedCacheDir}:/root/.cache/trivy \\
-                                -v ${env.WORKSPACE}/.trivyignore:/.trivyignore \\
-                                aquasec/trivy:latest \\
-                                fs \\
-                                --skip-db-update \\
-                                ${skipDirsFlags} \\
-                                --exit-code ${exitCode} \\
-                                --severity '${severities}' \\
-                                --scanners misconfig \\
-                                --timeout ${timeout} \\
-                                /src/${target}
-                        """
-                        echo "✅ IaC scan completed for ${target}. No critical misconfigurations found."
-                    } catch (e) {
-                        echo "❌ IaC scan failed for ${target} or misconfigurations were found!"
-                        echo "💡 Review Kubernetes manifests, Helm charts, and Dockerfiles for security issues."
-                        throw e
-                    } finally {
-                        echo "--- Cleaning up isolated cache for ${target} ---"
-                        sh "rm -rf ${isolatedCacheDir}"
-                    }
-                }
-            }
-        }
-        parallel parallelScans
+        // --- 2. Run IaC scans sequentially for all targets ---
+        echo "🔒 Running Trivy IaC (misconfiguration) scan..."
+        echo "📋 Targets to scan: ${targets.join(', ')}"
         
-        echo "🎉 All IaC scans completed successfully!"
+        def isolatedCacheDir = "${env.WORKSPACE}/.trivy-cache-iac-${UUID.randomUUID()}"
+        try {
+            echo "--- Preparing isolated cache for IaC scan ---"
+            sh "mkdir -p ${isolatedCacheDir}"
+            sh "cp -R ${persistentCacheDir}/* ${isolatedCacheDir}/"
+
+            // Scan all targets in a single Trivy run (much faster!)
+            echo "--- Scanning for IaC misconfigurations (${severities}) ---"
+            echo "📋 This will scan:"
+            echo "   - Kubernetes YAML files"
+            echo "   - Helm charts"
+            echo "   - Dockerfiles"
+            echo "   - Terraform files"
+            
+            sh """
+                docker run --rm \\
+                    -v ${env.WORKSPACE}:/src \\
+                    -v ${isolatedCacheDir}:/root/.cache/trivy \\
+                    -v ${env.WORKSPACE}/.trivyignore:/.trivyignore \\
+                    aquasec/trivy:latest \\
+                    fs \\
+                    --skip-db-update \\
+                    ${skipDirsFlags} \\
+                    --exit-code ${exitCode} \\
+                    --severity '${severities}' \\
+                    --scanners misconfig \\
+                    --timeout ${timeout} \\
+                    /src/.
+            """
+            echo "✅ IaC scan completed. No critical misconfigurations found."
+        } catch (e) {
+            echo "❌ IaC scan failed or misconfigurations were found!"
+            echo "💡 Review Kubernetes manifests, Helm charts, and Dockerfiles for security issues."
+            throw e
+        } finally {
+            echo "--- Cleaning up isolated cache for IaC scan ---"
+            sh "rm -rf ${isolatedCacheDir}"
+        }
+        
+        echo "🎉 IaC scan completed successfully!"
     }
 }
 
