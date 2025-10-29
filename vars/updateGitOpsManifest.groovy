@@ -6,6 +6,20 @@ def call(Map config) {
     def manifestFile = config.manifestFile ?: "argocd-manifests/environments/${environment}.yaml"
     def gitOpsRepo = config.gitOpsRepo ?: 'github.com/KeremAR/gitops-epam'
     def gitPushCredentialId = config.gitPushCredentialId ?: 'github-webhook'
+    def targetRevision = config.targetRevision  // Optional: only for production tags
+    
+    // Build sed commands for targetRevision update
+    def targetRevisionCommands = ""
+    if (targetRevision) {
+        echo "📌 Will update targetRevision to: ${targetRevision}"
+        targetRevisionCommands = """
+            echo "Updating targetRevision to: ${targetRevision}"
+            sed -i "s|targetRevision: '.*'|targetRevision: '${targetRevision}'|" ${manifestFile}
+            sed -i "s|targetRevision: .*|targetRevision: '${targetRevision}'|" ${manifestFile}
+        """
+    } else {
+        echo "📌 targetRevision will not be updated (using existing value)"
+    }
     
     withCredentials([
         usernamePassword(credentialsId: gitPushCredentialId, usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')
@@ -26,6 +40,8 @@ def call(Map config) {
             
             # Update todoService image tag
             sed -i '/name: todoService.image.tag/!b;n;c\\          value: '"'"'${imageTag}'"'"'' ${manifestFile}
+            
+            ${targetRevisionCommands}
             
             echo "Changes made to ${manifestFile}:"
             git diff ${manifestFile}

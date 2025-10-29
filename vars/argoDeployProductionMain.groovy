@@ -1,11 +1,20 @@
 def call(Map config) {
-    echo "🚀 Deploying to production from main branch..."
+    echo "🚀 Deploying to production from tag: ${env.TAG_NAME}"
     
-    // STEP 1: Update GitOps manifest with new image tags
+    // Validate that we have a tag
+    if (!env.TAG_NAME) {
+        error("❌ TAG_NAME is not set. Production deployment requires a git tag (e.g., v1.0.0)")
+    }
+    
+    echo "📦 Tag: ${env.TAG_NAME}"
+    echo "🏷️  Build: ${env.IMAGE_TAG}"
+    
+    // STEP 1: Update GitOps manifest with new image tags AND targetRevision
     echo "📝 Step 1: Updating GitOps manifest (gitops-epam)..."
     updateGitOpsManifest([
         imageTag: env.IMAGE_TAG,
         environment: 'production',
+        targetRevision: env.TAG_NAME,  // ← Tag'i targetRevision olarak set et
         gitOpsRepo: config.gitOpsRepo,
         gitPushCredentialId: config.gitPushCredentialId
     ])
