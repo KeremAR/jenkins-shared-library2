@@ -12,6 +12,8 @@
  *               - skipDirs (optional): List of directory paths to skip. Defaults to ['node_modules', 'venv', '.git'].
  */
 def call(Map config = [:]) {
+    echo "🔍 DEBUG: Starting runTrivyIaCscan with config: ${config}"
+    
     // --- Configuration with Defaults ---
     def targets = config.targets ?: ['k8s/', 'helm-charts/', '.']
     def severities = config.severities ?: 'MEDIUM,HIGH,CRITICAL'
@@ -20,13 +22,19 @@ def call(Map config = [:]) {
     def exitCode = failBuild ? 1 : 0
     def skipDirs = config.skipDirs ?: ['node_modules', 'venv', '.git', 'frontend2/frontend/node_modules']
     
+    echo "🔍 DEBUG: targets=${targets}, severities=${severities}, failBuild=${failBuild}"
+    
     // Construct the --skip-dirs flags string from the list of directories
     def skipDirsFlags = skipDirs.collect { dir -> "--skip-dirs ${dir}" }.join(' ')
+    
+    echo "🔍 DEBUG: skipDirsFlags=${skipDirsFlags}"
     
     // Define the persistent cache directory mounted into the pod from Utils.groovy
     def persistentCacheDir = "/home/jenkins/.trivy-cache"
 
+    echo "🔍 DEBUG: About to enter docker container..."
     container('docker') {
+        echo "🔍 DEBUG: Inside docker container"
         // --- 1. Pre-download/update the DB to the persistent location ---
         echo "🔄 Updating Trivy vulnerability database in persistent cache..."
         try {
