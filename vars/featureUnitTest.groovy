@@ -18,44 +18,45 @@
 def call(Map config) {
     def services = config.services
     
+    echo "🔍 Feature branch detected - running tests only for changed services..."
+    
+    // Fetch main branch to compare against (outside container, git is available here)
+    echo "Fetching main branch for comparison..."
+    sh """
+        git fetch origin main:main || echo "Main branch already fetched"
+    """
+    
+    // Get list of changed files (outside container, git is available here)
+    echo "Detecting changed files..."
+    def changedFiles = sh(
+        script: "git diff --name-only origin/main...HEAD || git diff --name-only HEAD~1",
+        returnStdout: true
+    ).trim()
+    
+    echo "Changed files:\n${changedFiles}"
+    
+    // Determine which services have changed
+    def changedServices = []
+    services.each { service ->
+        def serviceName = service.name
+        // Check if any file in the service directory was changed
+        if (changedFiles.contains("${serviceName}/")) {
+            changedServices.add(service)
+            echo "✓ Service '${serviceName}' has changes"
+        }
+    }
+    
+    if (changedServices.isEmpty()) {
+        echo "⚠️ No service changes detected. Skipping unit tests."
+        echo "Changed files were:\n${changedFiles}"
+        echo "This might be a documentation-only change or infrastructure change."
+        return
+    }
+    
+    echo "📋 Running tests for ${changedServices.size()} changed service(s): ${changedServices.collect { it.name }.join(', ')}"
+    
+    // Now run tests in docker container
     container('docker') {
-        echo "🔍 Feature branch detected - running tests only for changed services..."
-        
-        // Fetch main branch to compare against
-        echo "Fetching main branch for comparison..."
-        sh """
-            git fetch origin main:main || echo "Main branch already fetched"
-        """
-        
-        // Get list of changed files
-        echo "Detecting changed files..."
-        def changedFiles = sh(
-            script: "git diff --name-only origin/main...HEAD || git diff --name-only HEAD~1",
-            returnStdout: true
-        ).trim()
-        
-        echo "Changed files:\n${changedFiles}"
-        
-        // Determine which services have changed
-        def changedServices = []
-        services.each { service ->
-            def serviceName = service.name
-            // Check if any file in the service directory was changed
-            if (changedFiles.contains("${serviceName}/")) {
-                changedServices.add(service)
-                echo "✓ Service '${serviceName}' has changes"
-            }
-        }
-        
-        if (changedServices.isEmpty()) {
-            echo "⚠️ No service changes detected. Skipping unit tests."
-            echo "Changed files were:\n${changedFiles}"
-            echo "This might be a documentation-only change or infrastructure change."
-            return
-        }
-        
-        echo "📋 Running tests for ${changedServices.size()} changed service(s): ${changedServices.collect { it.name }.join(', ')}"
-        
         // Run tests for changed services in parallel
         def parallelTests = [:]
         
