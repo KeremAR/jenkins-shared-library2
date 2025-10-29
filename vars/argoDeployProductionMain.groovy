@@ -7,12 +7,27 @@ def call(Map config) {
     }
     
     echo "📦 Tag: ${env.TAG_NAME}"
-    echo "🏷️  Build: ${env.IMAGE_TAG}"
     
-    // STEP 1: Update GitOps manifest with new image tags AND targetRevision
-    echo "📝 Step 1: Updating GitOps manifest (gitops-epam)..."
+    // STEP 1: Get current staging image tag (the images we want to promote to production)
+    echo "🔍 Step 1: Getting current staging image tag..."
+    def stagingImageTag = sh(
+        script: '''
+            git clone https://github.com/KeremAR/gitops-epam.git temp_staging_check
+            cd temp_staging_check
+            grep "name: frontend.image.tag" argocd-manifests/environments/staging.yaml -A 1 | tail -1 | sed "s/.*value: '\\(.*\\)'/\\1/"
+        ''',
+        returnStdout: true
+    ).trim()
+    
+    echo "🏷️  Staging Image Tag: ${stagingImageTag}"
+    echo "📌 This is the image tag that will be promoted to production"
+    
+    sh "rm -rf temp_staging_check"
+    
+    // STEP 2: Update GitOps manifest with staging image tags AND targetRevision
+    echo "📝 Step 2: Updating GitOps manifest (gitops-epam)..."
     updateGitOpsManifest([
-        imageTag: env.IMAGE_TAG,
+        imageTag: stagingImageTag,  // ← Staging'deki image tag'ini kullan
         environment: 'production',
         targetRevision: env.TAG_NAME,  // ← Tag'i targetRevision olarak set et
         gitOpsRepo: config.gitOpsRepo,
@@ -21,10 +36,10 @@ def call(Map config) {
     
     // Wait a moment for GitHub to process the commit and ArgoCD to detect change
     echo "⏳ Waiting for ArgoCD to detect changes..."
-    sleep(time: 10, unit: 'SECONDS')
+    sleep(time: 15, unit: 'SECONDS')
     
-    // STEP 2: Sync ArgoCD
-    echo "🔄 Step 2: Syncing ArgoCD application..."
+    // STEP 3: Sync ArgoCD
+    echo "🔄 Step 3: Syncing ArgoCD application..."
     
     def userCredentialId = config.argoCdUserCredentialId ?: 'argocd-username'
     def passCredentialId = config.argoCdPassCredentialId ?: 'argocd-password'
