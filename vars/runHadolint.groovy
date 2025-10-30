@@ -14,7 +14,7 @@ def call(Map config) {
         def parallelLinting = [:]
         
         dockerfiles.each { dockerfilePath ->
-            parallelLinting["Lint ${dockerfilePath}"] = {
+            parallelLinting["Hadolint ${dockerfilePath}"] = {
                 try {
                     echo "Linting ${dockerfilePath}..."
                     // Run Hadolint inside its official Docker container, mounting the workspace
