@@ -85,6 +85,10 @@ def call(Map config) {
         }
         parallel parallelSBOM
         
+        // Fix permissions on SBOM directory (Docker creates files as root)
+        echo "🔧 Fixing SBOM file permissions for Jenkins cleanup..."
+        sh "chmod -R 777 ${env.WORKSPACE}/${outputDir} || true"
+        
         // Archive SBOM artifacts in Jenkins
         try {
             echo "📁 Archiving SBOM artifacts..."
