@@ -7,8 +7,8 @@ def call(Map config) {
     def blackVersion = config.blackVersion ?: '25.9.0'
     def flake8Version = config.flake8Version ?: '7.3.0'
 
-    container('docker') {
-        echo "🧹 Running Black and Flake8 for Python code in parallel (via docker run)..."
+    container('pythonLinting') {
+        echo "🧹 Running Black and Flake8 for Python code in parallel (custom container)..."
 
         def parallelLinting = [:]
 
@@ -16,25 +16,16 @@ def call(Map config) {
             parallelLinting["Lint ${target}"] = {
                 try {
                     echo "Formatting check with Black for ${target}..."
-                    sh '''
-                        docker run --rm \
-                            -v ${WORKSPACE}:/workspace --workdir /workspace \
-                            python:3.11-slim \
-                            /bin/sh -c "pip install black==''' + blackVersion + ''' flake8==''' + flake8Version + ''' && black --check ''' + target + '''"
-                    '''
+                    sh "black --check --diff --color ${target}"
                     echo "✅ Black passed for ${target}!"
                 } catch (e) {
                     echo "❌ Black failed for ${target}!"
+                    echo "Black otomatik düzeltme için: black ${target} komutunu çalıştırabilirsiniz."
                     throw e
                 }
                 try {
                     echo "Linting with Flake8 for ${target}..."
-                    sh '''
-                        docker run --rm \
-                            -v ${WORKSPACE}:/workspace --workdir /workspace \
-                            python:3.11-slim \
-                            /bin/sh -c "pip install flake8==''' + flake8Version + ''' && flake8 ''' + flake8Args + ' ' + target + '''"
-                    '''
+                    sh "flake8 ${flake8Args} ${target}"
                     echo "✅ Flake8 passed for ${target}!"
                 } catch (e) {
                     echo "❌ Flake8 failed for ${target}!"
