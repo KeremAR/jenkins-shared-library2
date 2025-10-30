@@ -4,8 +4,8 @@ def call(Map config) {
     // Expects a list of Python file paths or directories, e.g., ['user-service/', 'todo-service/']
     def pythonTargets = config.pythonTargets ?: ['user-service/', 'todo-service/']
     def flake8Args = config.flake8Args ?: '--max-line-length=88 --extend-ignore=E203'
-    def blackVersion = config.blackVersion ?: '23.3.0'
-    def flake8Version = config.flake8Version ?: '6.0.0'
+    def blackVersion = config.blackVersion ?: '25.9.0'
+    def flake8Version = config.flake8Version ?: '7.3.0'
 
     container('docker') {
         echo "🧹 Running Black and Flake8 for Python code in parallel (via docker run)..."
