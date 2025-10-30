@@ -59,7 +59,7 @@ class Utils implements Serializable {
                   limits:
                     memory: "512Mi"
                     cpu: "500m"
-              - name: pythonLinting
+              - name: pythonlinting
                 image: "ghcr.io/keremar/python-lint-agent:latest"
                 command: ["sleep"]
                 args: ["infinity"]

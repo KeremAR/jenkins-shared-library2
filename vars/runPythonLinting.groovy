@@ -7,7 +7,7 @@ def call(Map config) {
     def blackVersion = config.blackVersion ?: '25.9.0'
     def flake8Version = config.flake8Version ?: '7.3.0'
 
-    container('pythonLinting') {
+    container('pythonlinting') {
         echo "🧹 Running Black and Flake8 for Python code in parallel (custom container)..."
 
         def parallelLinting = [:]
