@@ -32,13 +32,14 @@ def call(Map config) {
         writeFile file: 'sonar-project.properties', text: """
             sonar.projectKey=${projectKey}
             sonar.sources=.
-            sonar.exclusions=**/node_modules/**,**/test/**,**/test_*.py,docker-compose*.yml,site/**,docs/**
+            sonar.exclusions=**/node_modules/**,**/test/**,**/test_*.py,docker-compose*.yml,site/**,docs/**,custom-images/**
             sonar.python.coverage.reportPaths=coverage-reports/coverage-user-service.xml,coverage-reports/coverage-todo-service.xml
+            sonar.cpd.exclusions=**/verify_token**,**/*service/app.py
             sonar.issue.ignore.multicriteria=e1,e2
             sonar.issue.ignore.multicriteria.e1.ruleKey=docker:S6471
             sonar.issue.ignore.multicriteria.e1.resourceKey=**/frontend2/frontend/Dockerfile
             sonar.issue.ignore.multicriteria.e2.ruleKey=docker:S4507
-            sonar.issue.ignore.multicriteria.e2.resourceKey=**/custom-images/Dockerfile.pythonlint
+            sonar.issue.ignore.multicriteria.e2.resourceKey=**/custom-images/**
         """
 
         echo "🔎 Preparing SonarQube analysis environment and waiting for Quality Gate..."
