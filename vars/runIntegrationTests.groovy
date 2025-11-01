@@ -22,8 +22,8 @@ def call(Map config = [:]) {
     container('docker') {
         try {
             echo "Installing test dependencies..."
-            apk update && apk add bash curl
-            
+            sh "apk update && apk add bash curl"  
+                      
             echo "🚀 Starting real E2E integration tests..."
             echo "   Compose file: ${composeFile}"
             echo "   User Service: ${userServiceUrl}"
