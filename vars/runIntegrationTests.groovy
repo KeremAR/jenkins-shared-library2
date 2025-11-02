@@ -8,26 +8,37 @@
  * and database interactions.
  * 
  * @param config Map containing:
- *   - composeFile: docker-compose file to use (default: 'docker-compose.yml')
+ *   - composeFile: docker-compose file to use (default: 'docker-compose.ci.yml')
  *   - userServiceUrl: URL for user service (default: 'http://localhost:8001')
  *   - todoServiceUrl: URL for todo service (default: 'http://localhost:8002')
  *   - healthCheckTimeout: Max seconds to wait for services (default: 120)
+ *   - userServiceImage: Pre-built user-service image (REQUIRED for CI)
+ *   - todoServiceImage: Pre-built todo-service image (REQUIRED for CI)
+ *   - frontendImage: Pre-built frontend image (REQUIRED for CI)
  */
 def call(Map config = [:]) {
-    def composeFile = config.composeFile ?: 'docker-compose.yml'
+    def composeFile = config.composeFile ?: 'docker-compose.ci.yml'
     def userServiceUrl = config.userServiceUrl ?: 'http://localhost:8001'
     def todoServiceUrl = config.todoServiceUrl ?: 'http://localhost:8002'
     def healthCheckTimeout = config.healthCheckTimeout ?: 120
+    def userServiceImage = config.userServiceImage
+    def todoServiceImage = config.todoServiceImage
+    def frontendImage = config.frontendImage
     
     container('docker') {
         try {
             echo "Installing test dependencies..."
-            sh "apk update && apk add bash curl"  
-                      
+            sh "apk update && apk add bash curl"      
+            
+                  
             echo "🚀 Starting real E2E integration tests..."
             echo "   Compose file: ${composeFile}"
             echo "   User Service: ${userServiceUrl}"
             echo "   Todo Service: ${todoServiceUrl}"
+            echo "   Using pre-built images:"
+            echo "      User Service: ${userServiceImage}"
+            echo "      Todo Service: ${todoServiceImage}"
+            echo "      Frontend: ${frontendImage}"
             
             // Step 1: Clean up any existing containers and volumes
             echo "🧹 Cleaning up previous test environment..."
@@ -36,10 +47,16 @@ def call(Map config = [:]) {
                 docker system prune -f --volumes 2>/dev/null || true
             """
             
-            // Step 2: Build and start all services
-            echo "🔨 Building and starting application stack..."
+            // Step 2: Export image environment variables and start all services
+            echo "� Starting application stack with pre-built images..."
             sh """
-                docker compose -f ${composeFile} up -d --build
+                # Export image variables for docker-compose.ci.yml
+                export USER_SERVICE_IMAGE="${userServiceImage}"
+                export TODO_SERVICE_IMAGE="${todoServiceImage}"
+                export FRONTEND_IMAGE="${frontendImage}"
+                
+                # Start services (NO BUILD - using pre-built images)
+                docker compose -f ${composeFile} up -d
             """
             
             // Step 3: Wait for services to be healthy
