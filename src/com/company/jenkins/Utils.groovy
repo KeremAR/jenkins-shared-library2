@@ -48,7 +48,8 @@ class Utils implements Serializable {
                 - name: trivy-cache
                   mountPath: /home/jenkins/.trivy-cache
               - name: argo
-                image: "ghcr.io/keremar/jenkins-argo-agent:latest"
+                image: "ghcr.io/keremar/jenkins-argo-agent:1.0"
+                imagePullPolicy: IfNotPresent
                 command: ["sleep"]
                 args: ["infinity"]
                 tty: true
@@ -60,7 +61,8 @@ class Utils implements Serializable {
                     memory: "512Mi"
                     cpu: "500m"
               - name: pythonlinting
-                image: "ghcr.io/keremar/python-lint-agent:latest"
+                image: "ghcr.io/keremar/python-lint-agent:1.0"
+                imagePullPolicy: IfNotPresent
                 command: ["sleep"]
                 args: ["infinity"]
                 tty: true
