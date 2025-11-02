@@ -65,7 +65,7 @@ def call(Map config) {
                     echo ""
                     echo "⏳ Step 2b: Waiting for STAGING-APP to be healthy..."
                     echo "   This ensures new image tags (:${env.IMAGE_TAG}) are deployed."
-                    argocd app wait \$STAGING_APP_NAME --health --timeout 600
+                    argocd app wait \$STAGING_APP_NAME --health --sync --timeout 600
                     
                     echo ""
                     echo "✅ Staging deployment complete!"
