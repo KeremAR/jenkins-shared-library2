@@ -56,7 +56,7 @@ def call(Map config = [:]) {
                 export FRONTEND_IMAGE="${frontendImage}"
                 
                 # Start services (NO BUILD - using pre-built images)
-                docker compose -f ${composeFile} up -d --no-pull
+                docker compose -f ${composeFile} up -d
             """
             
             // Step 3: Wait for services to be healthy
