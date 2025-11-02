@@ -66,15 +66,15 @@ def call(Map config = [:]) {
                 echo "📦 Checking deployed images in namespace: ${namespace}"
                 echo ""
                 
-                # Get user-service image from Rollout (not Deployment)
-                USER_SERVICE_IMAGE=\$(kubectl argo rollouts get rollout ${userServiceDeployment} \
+                # Get user-service image from Rollout resource
+                USER_SERVICE_IMAGE=\$(kubectl get rollout ${userServiceDeployment} \
                     -n ${namespace} \
                     -o jsonpath='{.spec.template.spec.containers[0].image}')
                 
                 echo "✅ VERIFIED User Service Image (from Rollout): \${USER_SERVICE_IMAGE}"
                 
-                # Get todo-service image from Rollout (not Deployment)
-                TODO_SERVICE_IMAGE=\$(kubectl argo rollouts get rollout ${todoServiceDeployment} \
+                # Get todo-service image from Rollout resource
+                TODO_SERVICE_IMAGE=\$(kubectl get rollout ${todoServiceDeployment} \
                     -n ${namespace} \
                     -o jsonpath='{.spec.template.spec.containers[0].image}')
                 
