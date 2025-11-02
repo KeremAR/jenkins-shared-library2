@@ -12,18 +12,27 @@
  *   - userServiceUrl: URL for user service (default: 'http://localhost:8001')
  *   - todoServiceUrl: URL for todo service (default: 'http://localhost:8002')
  *   - healthCheckTimeout: Max seconds to wait for services (default: 120)
- *   - userServiceImage: Pre-built user-service image (REQUIRED for CI)
- *   - todoServiceImage: Pre-built todo-service image (REQUIRED for CI)
- *   - frontendImage: Pre-built frontend image (REQUIRED for CI)
+ *   - builtImages: Comma-separated string of pre-built images from Build stage (REQUIRED)
+ *   - imageTag: Current build image tag (e.g., BUILD_NUMBER) to filter versioned images
  */
 def call(Map config = [:]) {
     def composeFile = config.composeFile ?: 'docker-compose.ci.yml'
     def userServiceUrl = config.userServiceUrl ?: 'http://localhost:8001'
     def todoServiceUrl = config.todoServiceUrl ?: 'http://localhost:8002'
     def healthCheckTimeout = config.healthCheckTimeout ?: 120
-    def userServiceImage = config.userServiceImage
-    def todoServiceImage = config.todoServiceImage
-    def frontendImage = config.frontendImage
+    def builtImages = config.builtImages
+    def imageTag = config.imageTag
+    
+    // Parse versioned images from builtImages string (exclude :latest tags)
+    def allImages = builtImages.split(',')
+    def userServiceImage = allImages.find { it.contains('user-service') && it.contains(":${imageTag}") }
+    def todoServiceImage = allImages.find { it.contains('todo-service') && it.contains(":${imageTag}") }
+    def frontendImage = allImages.find { it.contains('frontend') && it.contains(":${imageTag}") }
+    
+    // Validate that all required images were found
+    if (!userServiceImage || !todoServiceImage || !frontendImage) {
+        error("❌ Failed to parse required images from builtImages. Found: user=${userServiceImage}, todo=${todoServiceImage}, frontend=${frontendImage}")
+    }
     
     container('docker') {
         try {
@@ -44,7 +53,6 @@ def call(Map config = [:]) {
             echo "🧹 Cleaning up previous test environment..."
             sh """
                 docker compose -f ${composeFile} down -v 2>/dev/null || true
-                docker system prune -f --volumes 2>/dev/null || true
             """
             
             // Step 2: Export image environment variables and start all services
