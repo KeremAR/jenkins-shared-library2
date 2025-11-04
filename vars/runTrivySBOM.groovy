@@ -3,12 +3,17 @@
 /**
  * Generates Software Bill of Materials (SBOM) for Docker images using Trivy.
  * SBOM provides a complete inventory of all components in the software supply chain.
+ * Optionally uploads SBOMs to Dependency-Track for centralized vulnerability management.
  *
  * @param config A map containing the configuration for SBOM generation.
  *               - images (required): A list of Docker image names to generate SBOMs for.
  *               - format (optional): SBOM format. Options: 'cyclonedx', 'spdx', 'spdx-json', 'json'. Defaults to 'cyclonedx'.
  *               - outputDir (optional): Directory to save SBOM files. Defaults to 'sbom-reports'.
  *               - skipDirs (optional): List of directory paths to skip. Defaults to an empty list.
+ *               - uploadToDependencyTrack (optional): Boolean to enable upload to Dependency-Track. Defaults to false.
+ *               - dependencyTrackProjectName (optional): Project name in Dependency-Track. Defaults to 'todo-app'.
+ *               - dependencyTrackProjectVersion (optional): Project version. Defaults to env.IMAGE_TAG or 'latest'.
+ *               - dependencyTrackAutoCreate (optional): Auto-create project if not exists. Defaults to true.
  */
 def call(Map config) {
     // --- Configuration with Defaults ---
@@ -19,6 +24,12 @@ def call(Map config) {
     def format = config.format ?: 'cyclonedx'
     def outputDir = config.outputDir ?: 'sbom-reports'
     def skipDirs = config.skipDirs ?: []
+    
+    // Dependency-Track configuration
+    def uploadToDependencyTrack = config.uploadToDependencyTrack ?: false
+    def dtProjectName = config.dependencyTrackProjectName ?: 'todo-app'
+    def dtProjectVersion = config.dependencyTrackProjectVersion ?: (env.IMAGE_TAG ?: 'latest')
+    def dtAutoCreate = config.dependencyTrackAutoCreate != false // Defaults to true
 
     // Filter out ':latest' tags from the image list
     def imagesToProcess = images.findAll { it -> it instanceof String && !it.endsWith(':latest') }
@@ -98,6 +109,18 @@ def call(Map config) {
             echo "⚠️ Warning: Could not archive SBOM artifacts"
             echo "Error: ${e.getMessage()}"
         }
+        
+        // Upload to Dependency-Track if enabled
+        // if (uploadToDependencyTrack) {
+        //     uploadSBOMsToDependencyTrack(
+        //         outputDir: outputDir,
+        //         projectName: dtProjectName,
+        //         projectVersion: dtProjectVersion,
+        //         autoCreate: dtAutoCreate
+        //     )
+        // } else {
+        //     echo "ℹ️ Dependency-Track upload disabled (set uploadToDependencyTrack: true to enable)"
+        // }
         
         echo "🎉 SBOM generation completed for ${imagesToProcess.size()} image(s)!"
     }
