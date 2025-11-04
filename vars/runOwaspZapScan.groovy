@@ -54,10 +54,12 @@ def call(Map config = [:]) {
     
     container('docker') {
         try {
-            // Create report directory in workspace
+            // Create report directory in workspace with proper permissions
+            // ZAP container runs as user 'zap' (UID 1000), so we need world-writable directory
             sh """
                 mkdir -p ${reportDir}
-                echo "📁 Created report directory: ${reportDir}"
+                chmod 777 ${reportDir}
+                echo "📁 Created report directory with write permissions: ${reportDir}"
             """
             
             // Run ZAP baseline scan in Docker container
