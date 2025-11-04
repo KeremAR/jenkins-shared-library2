@@ -43,14 +43,14 @@ def call(Map config = [:]) {
     def zapImage = config.zapImage ?: 'ghcr.io/zaproxy/zaproxy:stable'
     def reportDir = config.reportDir ?: 'zap-reports'
     def scanLevel = config.scanLevel ?: 'WARN'
-    def timeout = config.timeout ?: 30
+    def scanTimeout = config.timeout ?: 30
     
     echo "🔒 Running OWASP ZAP Baseline Security Scan..."
     echo "   Target URL: ${targetUrl}"
     echo "   ZAP Image: ${zapImage}"
     echo "   Report Directory: ${reportDir}"
     echo "   Scan Level: ${scanLevel}"
-    echo "   Timeout: ${timeout} minutes"
+    echo "   Timeout: ${scanTimeout} minutes"
     
     try {
         // Create report directory in workspace
@@ -78,8 +78,8 @@ def call(Map config = [:]) {
                 -J report.json
         """
         
-        timeout(time: timeout, unit: 'MINUTES') {
-            echo "🚀 Starting ZAP baseline scan (timeout: ${timeout}min)..."
+        timeout(time: scanTimeout, unit: 'MINUTES') {
+            echo "🚀 Starting ZAP baseline scan (timeout: ${scanTimeout}min)..."
             echo "Command: ${zapCommand}"
             
             def exitCode = sh(
