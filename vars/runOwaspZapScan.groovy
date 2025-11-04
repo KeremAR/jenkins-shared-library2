@@ -52,87 +52,88 @@ def call(Map config = [:]) {
     echo "   Scan Level: ${scanLevel}"
     echo "   Timeout: ${scanTimeout} minutes"
     
-    try {
-        // Create report directory in workspace
-        sh """
-            mkdir -p ${reportDir}
-            echo "📁 Created report directory: ${reportDir}"
-        """
-        
-        // Run ZAP baseline scan in Docker container
-        // -t: Target URL
-        // -l: Alert level threshold (WARN = don't fail on findings)
-        // -r: HTML report filename
-        // -w: Markdown report filename  
-        // -J: JSON report filename
-        // --hook: Optional hook script for custom rules (not used here)
-        def zapCommand = """
-            docker run --rm \
-                -v \$(pwd)/${reportDir}:/zap/wrk:rw \
-                ${zapImage} \
-                zap-baseline.py \
-                -t ${targetUrl} \
-                -l ${scanLevel} \
-                -r report.html \
-                -w report.md \
-                -J report.json
-        """
-        
-        timeout(time: scanTimeout, unit: 'MINUTES') {
-            echo "🚀 Starting ZAP baseline scan (timeout: ${scanTimeout}min)..."
-            echo "Command: ${zapCommand}"
+    container('docker') {
+        try {
+            // Create report directory in workspace
+            sh """
+                mkdir -p ${reportDir}
+                echo "📁 Created report directory: ${reportDir}"
+            """
             
-            def exitCode = sh(
-                script: zapCommand,
-                returnStatus: true
-            )
+            // Run ZAP baseline scan in Docker container
+            // -t: Target URL
+            // -l: Alert level threshold (WARN = don't fail on findings)
+            // -r: HTML report filename
+            // -w: Markdown report filename  
+            // -J: JSON report filename
+            // --hook: Optional hook script for custom rules (not used here)
+            def zapCommand = """
+                docker run --rm \
+                    -v \$(pwd)/${reportDir}:/zap/wrk:rw \
+                    ${zapImage} \
+                    zap-baseline.py \
+                    -t ${targetUrl} \
+                    -l ${scanLevel} \
+                    -r report.html \
+                    -w report.md \
+                    -J report.json
+            """
             
-            // ZAP exit codes:
-            // 0 = Success (no issues found)
-            // 1 = Warning (issues found but below threshold)
-            // 2 = Error (critical issues found)
-            // 3+ = Scan failure
-            
-            if (exitCode == 0) {
-                echo "✅ ZAP scan completed successfully - No security issues found"
-            } else if (exitCode == 1) {
-                echo "⚠️ ZAP scan completed - Security warnings found (not failing build due to -l ${scanLevel})"
-            } else if (exitCode == 2) {
-                echo "⚠️ ZAP scan found critical issues (not failing build due to -l ${scanLevel})"
-            } else {
-                error("❌ ZAP scan failed with exit code ${exitCode}")
+            timeout(time: scanTimeout, unit: 'MINUTES') {
+                echo "🚀 Starting ZAP baseline scan (timeout: ${scanTimeout}min)..."
+                echo "Command: ${zapCommand}"
+                
+                def exitCode = sh(
+                    script: zapCommand,
+                    returnStatus: true
+                )
+                
+                // ZAP exit codes:
+                // 0 = Success (no issues found)
+                // 1 = Warning (issues found but below threshold)
+                // 2 = Error (critical issues found)
+                // 3+ = Scan failure
+                
+                if (exitCode == 0) {
+                    echo "✅ ZAP scan completed successfully - No security issues found"
+                } else if (exitCode == 1) {
+                    echo "⚠️ ZAP scan completed - Security warnings found (not failing build due to -l ${scanLevel})"
+                } else if (exitCode == 2) {
+                    echo "⚠️ ZAP scan found critical issues (not failing build due to -l ${scanLevel})"
+                } else {
+                    error("❌ ZAP scan failed with exit code ${exitCode}")
+                }
             }
-        }
-        
-        // Verify reports were generated
-        sh """
-            echo "📊 Verifying generated reports..."
-            ls -lh ${reportDir}/
             
-            if [ ! -f "${reportDir}/report.html" ]; then
-                echo "❌ Error: HTML report not found!"
-                exit 1
-            fi
+            // Verify reports were generated
+            sh """
+                echo "📊 Verifying generated reports..."
+                ls -lh ${reportDir}/
+                
+                if [ ! -f "${reportDir}/report.html" ]; then
+                    echo "❌ Error: HTML report not found!"
+                    exit 1
+                fi
+                
+                if [ ! -f "${reportDir}/report.md" ]; then
+                    echo "❌ Error: Markdown report not found!"
+                    exit 1
+                fi
+                
+                if [ ! -f "${reportDir}/report.json" ]; then
+                    echo "❌ Error: JSON report not found!"
+                    exit 1
+                fi
+                
+                echo "✅ All reports generated successfully"
+            """
             
-            if [ ! -f "${reportDir}/report.md" ]; then
-                echo "❌ Error: Markdown report not found!"
-                exit 1
-            fi
+            echo "🎉 OWASP ZAP scan completed successfully!"
             
-            if [ ! -f "${reportDir}/report.json" ]; then
-                echo "❌ Error: JSON report not found!"
-                exit 1
-            fi
-            
-            echo "✅ All reports generated successfully"
-        """
-        
-        echo "🎉 OWASP ZAP scan completed successfully!"
-        
-    } catch (Exception e) {
-        echo "❌ OWASP ZAP scan failed: ${e.message}"
-        throw e
-    } finally {
+        } catch (Exception e) {
+            echo "❌ OWASP ZAP scan failed: ${e.message}"
+            throw e
+        } finally {
         // Always archive and publish reports, even if scan fails
         echo "📦 Archiving and publishing ZAP reports..."
         
@@ -148,21 +149,22 @@ def call(Map config = [:]) {
             echo "⚠️ Warning: Failed to archive artifacts: ${e.message}"
         }
         
-        try {
-            // Publish HTML report for easy viewing in Jenkins UI
-            publishHTML([
-                allowMissing: true,
-                alwaysLinkToLastBuild: true,
-                keepAll: true,
-                reportDir: reportDir,
-                reportFiles: 'report.html',
-                reportName: 'ZAP Baseline Report',
-                reportTitles: 'OWASP ZAP Security Scan'
-            ])
-            echo "✅ HTML report published successfully"
-        } catch (Exception e) {
-            echo "⚠️ Warning: Failed to publish HTML report: ${e.message}"
-            echo "   Make sure 'HTML Publisher' plugin is installed in Jenkins"
+            try {
+                // Publish HTML report for easy viewing in Jenkins UI
+                publishHTML([
+                    allowMissing: true,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
+                    reportDir: reportDir,
+                    reportFiles: 'report.html',
+                    reportName: 'ZAP Baseline Report',
+                    reportTitles: 'OWASP ZAP Security Scan'
+                ])
+                echo "✅ HTML report published successfully"
+            } catch (Exception e) {
+                echo "⚠️ Warning: Failed to publish HTML report: ${e.message}"
+                echo "   Make sure 'HTML Publisher' plugin is installed in Jenkins"
+            }
         }
     }
 }
