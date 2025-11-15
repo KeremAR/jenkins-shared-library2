@@ -3,10 +3,23 @@ def call(Map config) {
     
     def imageTag = config.imageTag ?: env.BUILD_NUMBER
     def environment = config.environment ?: 'production'
-    def manifestFile = config.manifestFile ?: "argocd-manifests/environments/${environment}.yaml"
+    def serviceName = config.serviceName  // NEW: Service name (e.g., 'user-service', 'todo-service', 'frontend')
     def gitOpsRepo = config.gitOpsRepo ?: 'github.com/KeremAR/gitops-epam'
     def gitPushCredentialId = config.gitPushCredentialId ?: 'github-webhook'
     def targetRevision = config.targetRevision  // Optional: only for production tags
+    
+    // Validate serviceName parameter
+    if (!serviceName) {
+        error "❌ serviceName parameter is required for service-based deployments"
+    }
+    
+    // Construct manifest file path for specific service
+    // Example: argocd-manifests/environments/staging/staging-user-service.yaml
+    def manifestFile = "argocd-manifests/environments/${environment}/${environment}-${serviceName}.yaml"
+    
+    echo "📌 Target manifest file: ${manifestFile}"
+    echo "📌 Service: ${serviceName}"
+    echo "📌 Image tag: ${imageTag}"
     
     // Build sed commands for targetRevision update
     def targetRevisionCommands = ""
@@ -30,16 +43,10 @@ def call(Map config) {
             git clone "https://${GIT_USERNAME}:${GIT_PASSWORD}@${gitOpsRepo}.git" temp_gitops_repo
             cd temp_gitops_repo
             
-            echo "Updating image tags in ${manifestFile}..."
+            echo "Updating image tag for ${serviceName} in ${manifestFile}..."
             
-            # Update frontend image tag
-            sed -i '/name: frontend.image.tag/!b;n;c\\          value: '"'"'${imageTag}'"'"'' ${manifestFile}
-            
-            # Update userService image tag
-            sed -i '/name: userService.image.tag/!b;n;c\\          value: '"'"'${imageTag}'"'"'' ${manifestFile}
-            
-            # Update todoService image tag
-            sed -i '/name: todoService.image.tag/!b;n;c\\          value: '"'"'${imageTag}'"'"'' ${manifestFile}
+            # Update image.tag parameter for this specific service
+            sed -i '/name: image.tag/!b;n;c\\          value: '"'"'${imageTag}'"'"'' ${manifestFile}
             
             ${targetRevisionCommands}
             
@@ -53,12 +60,12 @@ def call(Map config) {
             
             if ! git diff-index --quiet HEAD; then
                 echo "Committing GitOps manifest updates..."
-                git commit -m "ci: Update ${environment} image tags to build ${imageTag}"
+                git commit -m "ci: Update ${environment} ${serviceName} to build ${imageTag}"
                 
                 echo "Pushing to GitOps repository..."
                 git push origin main
                 
-                echo "✅ GitOps manifest updated successfully"
+                echo "✅ GitOps manifest updated successfully for ${serviceName}"
             else
                 echo "No changes to commit"
             fi
