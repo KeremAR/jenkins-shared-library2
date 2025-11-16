@@ -3,7 +3,7 @@ def call(Map config) {
     
     def imageTag = config.imageTag ?: env.BUILD_NUMBER
     def environment = config.environment ?: 'production'
-    def serviceName = config.serviceName  // NEW: Service name (e.g., 'user-service', 'todo-service', 'frontend')
+    def serviceName = config.serviceName
     def gitOpsRepo = config.gitOpsRepo ?: 'github.com/KeremAR/gitops-epam'
     def gitPushCredentialId = config.gitPushCredentialId ?: 'github-webhook'
     def targetRevision = config.targetRevision  // Optional: only for production tags
@@ -53,7 +53,7 @@ def call(Map config) {
             echo "Changes made to ${manifestFile}:"
             git diff ${manifestFile}
             
-            # Commit and push
+            # Git config (idempotent)
             git config --global user.email "jenkins@ci.local"
             git config --global user.name "Jenkins CI"
             git add ${manifestFile}
