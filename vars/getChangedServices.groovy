@@ -24,25 +24,26 @@
 def call(Map config) {
     def services = config.services
     
-    // Fetch main branch to compare against (git is available in Jenkins agent)
-    echo "🔍 Fetching main branch for comparison..."
-    sh """
-        git fetch origin main || echo "Already fetched"
-    """
+    // Determine comparison strategy based on branch
+    def isMainBranch = env.BRANCH_NAME == 'main'
+    def comparisonTarget = isMainBranch ? 'HEAD~1' : 'origin/main'
+    
+    echo "🔍 Branch: ${env.BRANCH_NAME}"
+    echo "🔍 Comparison strategy: ${isMainBranch ? 'Compare with previous commit (HEAD~1)' : 'Compare with main branch'}"
+    
+    // Fetch main branch if needed (for feature branches)
+    if (!isMainBranch) {
+        echo "🔍 Fetching main branch for comparison..."
+        sh """
+            git fetch origin main || echo "Already fetched"
+        """
+    }
     
     // Get list of changed files
-    echo "🔍 Detecting changed files..."
+    echo "🔍 Detecting changed files (comparing with ${comparisonTarget})..."
     def changedFiles = sh(
         script: """
-            # Try different methods to get changed files
-            if git diff --name-only origin/main HEAD 2>/dev/null; then
-                exit 0
-            elif git diff --name-only FETCH_HEAD HEAD 2>/dev/null; then
-                exit 0
-            else
-                # Fallback: compare with previous commit
-                git diff --name-only HEAD~1 2>/dev/null || echo ""
-            fi
+            git diff --name-only ${comparisonTarget} HEAD 2>/dev/null || echo ""
         """,
         returnStdout: true
     ).trim()
