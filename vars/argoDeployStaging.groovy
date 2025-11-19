@@ -18,7 +18,12 @@
 def call(Map config) {
     // Determine if batch or single service deployment
     def isBatch = config.services != null
-    def servicesToDeploy = isBatch ? config.services : [config.serviceName]
+    def servicesInput = isBatch ? config.services : [config.serviceName]
+    
+    // Normalize input: If services are Maps (from config.services), extract names. If Strings, keep as is.
+    def servicesToDeploy = servicesInput.collect { service ->
+        service instanceof Map ? service.name : service
+    }
     
     if (!servicesToDeploy || servicesToDeploy.isEmpty()) {
         error "❌ Either serviceName or services array is required"
